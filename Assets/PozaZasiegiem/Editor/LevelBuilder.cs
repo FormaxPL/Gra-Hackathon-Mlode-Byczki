@@ -152,6 +152,10 @@ public static class LevelBuilder
             BuildGate();
             BuildTunnel();
             BuildSurfaceSets();
+            // światła tunelu (włączane fabularnie) i przerywników nie trafiają do wypalania GI
+            foreach (var root in new[] { story.tunnelLights, story.surface })
+                if (root != null)
+                    foreach (var lc in root.GetComponentsInChildren<LightCategory>(true)) lc.excludeFromBake = true;
 
             EditorUtility.DisplayProgressBar("Poza Zasięgiem", "Przedmioty i kryjówki...", 0.45f);
             var start = new Vector2Int(0, 0);
@@ -3082,6 +3086,7 @@ public static class LevelBuilder
         var lc = g.GetComponent<LightCategory>();
         lc.powered = false;
         lc.neverCull = neverCull;
+        lc.excludeFromBake = true; // światło fabularne – tylko na żywo
         return g;
     }
 
