@@ -203,6 +203,7 @@ public static class LevelBuilder
             gm.AddComponent<RuntimeNavMeshBaker>().levelRoot = levelT;
             gm.AddComponent<MenuSystem>();
             gm.AddComponent<Blackout>();
+            gm.AddComponent<RandomBlackouts>(); // dodatkowe losowe awarie w eksploracji
             gm.AddComponent<LightCuller>();
             if (aero)
             {
