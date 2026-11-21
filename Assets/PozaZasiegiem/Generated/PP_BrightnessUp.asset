@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PP_BrightnessUp
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 8053694666391873957}
---- !u!114 &8053694666391873957
+  - {fileID: 2602869552424959193}
+--- !u!114 &2602869552424959193
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}

@@ -636,6 +636,74 @@ public static class ProceduralAudio
     }
 
     /// <summary>Szum radiowy z "głosem" (pasmo mowy modulowane jak sylaby).</summary>
+    // formanty samogłosek (F1, F2) – a, e, i, o, u
+    static readonly Vector2[] Vowels = { new Vector2(800, 1200), new Vector2(500, 1800), new Vector2(300, 2300), new Vector2(500, 900), new Vector2(330, 800) };
+
+    /// <summary>
+    /// „Mowa” postaci bez aktora głosowego: mamrotanie z sylab (samogłoski z formantami), jak w grach indie.
+    /// Liczba sylab wynika z długości tekstu, pauzy z interpunkcji, wysokość z <paramref name="basePitch"/>
+    /// (Hz, ok. 110–130 męski, 200–230 żeński). Ten sam tekst brzmi zawsze tak samo. Pusty tekst = null.
+    /// </summary>
+    public static AudioClip Mumble(string text, float basePitch, float maxDuration)
+    {
+        if (string.IsNullOrEmpty(text)) return null;
+        uint h = 2166136261; // FNV-1a – stabilny między uruchomieniami
+        foreach (char ch in text) { h ^= ch; h *= 16777619; }
+        var r = new System.Random((int)(h & 0x7fffffff));
+
+        var data = new System.Collections.Generic.List<float>();
+        int maxN = (int)(SR * maxDuration);
+        int letters = 0;
+        for (int ci = 0; ci < text.Length && data.Count < maxN; ci++)
+        {
+            char ch = text[ci];
+            if (char.IsLetterOrDigit(ch)) { letters++; if (letters < 3) continue; letters = 0; }
+            else if (ch == '.' || ch == ',' || ch == '?' || ch == '!' || ch == '…')
+            {
+                int pause = (int)(SR * (ch == ',' ? 0.09f : 0.16f));
+                for (int i = 0; i < pause && data.Count < maxN; i++) data.Add(0f);
+                continue;
+            }
+            else continue;
+
+            // jedna sylaba: krótki dźwięczny „bla” z losową samogłoską i lekkim ślizgiem wysokości
+            float len = 0.08f + (float)r.NextDouble() * 0.06f;
+            float f0 = basePitch * (0.88f + (float)r.NextDouble() * 0.26f);
+            float glide = ((float)r.NextDouble() - 0.5f) * 0.2f;
+            var v = Vowels[r.Next(Vowels.Length)];
+            int n = (int)(SR * len);
+            // wzmocnienia harmonicznych (formanty) raz na sylabę – nie na każdą próbkę
+            int harm = Mathf.Max(1, (int)(3200f / f0));
+            var gain = new float[harm + 1];
+            for (int k = 1; k <= harm; k++)
+            {
+                float hf = k * f0;
+                gain[k] = 0.25f / k + Mathf.Exp(-Mathf.Pow((hf - v.x) / 160f, 2f)) + 0.6f * Mathf.Exp(-Mathf.Pow((hf - v.y) / 260f, 2f));
+            }
+            float ph = 0f;
+            for (int i = 0; i < n && data.Count < maxN; i++)
+            {
+                float t = (float)i / n;
+                float f = f0 * (1f + glide * t);
+                ph += 2f * Mathf.PI * f / SR;
+                float s = 0f;
+                for (int k = 1; k <= harm; k++) s += Mathf.Sin(ph * k) * gain[k];
+                float env = Mathf.Sin(Mathf.PI * Mathf.Min(1f, t * 1.15f)); // miękki atak i wybrzmienie
+                data.Add(s * env);
+            }
+            int gap = (int)(SR * (0.02f + (float)r.NextDouble() * 0.04f));
+            for (int i = 0; i < gap && data.Count < maxN; i++) data.Add(0f);
+        }
+        if (data.Count == 0) return null;
+
+        float peak = 0f;
+        foreach (var s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
+        var arr = data.ToArray();
+        float norm = peak > 0f ? 0.6f / peak : 1f;
+        for (int i = 0; i < arr.Length; i++) arr[i] *= norm;
+        return Make("Mumble", arr);
+    }
+
     public static AudioClip RadioVoice(float duration, int seed)
     {
         var r = new System.Random(seed);

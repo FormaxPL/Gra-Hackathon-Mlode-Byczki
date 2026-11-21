@@ -559,10 +559,14 @@ public static class LevelBuilder
             Material frame = Has(e, Zone.Freezer) ? mSteel : Has(e, Zone.Kitchen) ? mSteel
                 : (Has(e, Zone.Office) || Has(e, Zone.Dining)) ? mWoodDark : Has(e, Zone.Storage) ? mSafetyYellow : mSteelDark;
             float depth = WallT + 0.1f;
-            Vector3 jamb = e.horiz ? new Vector3(0.12f, DoorH, depth) : new Vector3(depth, DoorH, 0.12f);
-            Box("Ościeżnica", levelT, mid + dir * (DoorW / 2f - 0.06f) + Vector3.up * (DoorH / 2f), jamb, frame, true, false, null, 0f);
-            Box("Ościeżnica", levelT, mid - dir * (DoorW / 2f - 0.06f) + Vector3.up * (DoorH / 2f), jamb, frame, true, false, null, 0f);
-            Box("Nadproże", levelT, mid + Vector3.up * (DoorH + 0.06f), e.horiz ? new Vector3(DoorW, 0.12f, depth) : new Vector3(depth, 0.12f, DoorW), frame, true, false, null, 0f);
+            // Nadproże zachodzi 2 cm pod spód ściany nad drzwiami (która zaczyna się na DoorH). Wcześniej obie
+            // dolne powierzchnie leżały w jednej płaszczyźnie i migały (z-fighting) przy przechodzeniu przez drzwi.
+            const float overlap = 0.02f;
+            float jambH = DoorH - overlap;
+            Vector3 jamb = e.horiz ? new Vector3(0.12f, jambH, depth) : new Vector3(depth, jambH, 0.12f);
+            Box("Ościeżnica", levelT, mid + dir * (DoorW / 2f - 0.06f) + Vector3.up * (jambH / 2f), jamb, frame, true, false, null, 0f);
+            Box("Ościeżnica", levelT, mid - dir * (DoorW / 2f - 0.06f) + Vector3.up * (jambH / 2f), jamb, frame, true, false, null, 0f);
+            Box("Nadproże", levelT, mid + Vector3.up * (DoorH + 0.06f - overlap), e.horiz ? new Vector3(DoorW, 0.12f, depth) : new Vector3(depth, 0.12f, DoorW), frame, true, false, null, 0f);
 
             if (Has(e, Zone.Freezer)) MakeStripCurtain(mid, n);
             else if (Has(e, Zone.Kitchen) && R() < 0.75f) MakeSwingDoors(mid, n);

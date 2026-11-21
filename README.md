@@ -1,8 +1,8 @@
-# Poza Zasięgiem
+# The Backrooms: Isolation
 
 Horror pierwszoosobowy zrobiony na hackathon przez drużynę **Młode Byczki**.
 
-Trzech znajomych nagrywa film w opuszczonym magazynie. Podłoga się zapada, a Marek spada do labiryntu pod spodem. Do tego miejsca nie dociera sygnał, a w korytarzach poluje na niego istota, która porusza się rurami pod sufitem. Trzeba zebrać części radiostacji, skontaktować się z Agencją ECHO i uciec, zanim cię znajdzie.
+Trzech znajomych nagrywa film w opuszczonym magazynie. Podłoga się zapada i bohater – jego imienia nie znamy – spada do labiryntu pod spodem. Jack i Mary zostają na górze. Do tego miejsca nie dociera sygnał, a w korytarzach poluje istota, która porusza się rurami pod sufitem. Trzeba zebrać części radiostacji, skontaktować się z Agencją ECHO i uciec, zanim cię znajdzie.
 
 ## Wymagania
 

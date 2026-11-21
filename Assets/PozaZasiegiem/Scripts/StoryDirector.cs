@@ -296,6 +296,39 @@ public class StoryDirector : MonoBehaviour
         speakerColor = c;
         subtitle = Loc.T(pl, en);
         subtitleUntil = Time.time + duration;
+        Mumble(who, subtitle, duration);
+    }
+
+    AudioSource voiceSrc;
+
+    /// <summary>Wysokość „głosu” (Hz) postaci przy mamrotaniu.</summary>
+    public static float VoicePitch(string who)
+    {
+        switch (who)
+        {
+            case "JACK": return 120f;
+            case "MARY": return 225f;
+            case "ECHO-1": return 105f;
+            case "ECHO-2": return 160f;
+            default: return 140f; // bohater (bez imienia)
+        }
+    }
+
+    /// <summary>Postacie nie mają aktorów głosowych – mówią mamrotaniem, jak w grach indie.</summary>
+    void Mumble(string who, string text, float duration)
+    {
+        var clip = ProceduralAudio.Mumble(text, VoicePitch(who), duration * 0.9f);
+        if (clip == null) return;
+        if (voiceSrc == null)
+        {
+            voiceSrc = gameObject.AddComponent<AudioSource>();
+            voiceSrc.playOnAwake = false;
+            voiceSrc.spatialBlend = 0f;
+            voiceSrc.volume = 0.55f;
+        }
+        voiceSrc.Stop();
+        voiceSrc.clip = clip;
+        voiceSrc.Play();
     }
 
     IEnumerator SayWait(string who, Color c, string pl, string en, float duration)
@@ -343,15 +376,15 @@ public class StoryDirector : MonoBehaviour
             Vector3 target = Vector3.Lerp(look, hole, lookDown);
             Vector3 hh = Handheld(t, 2.2f);
             cam.SetPositionAndRotation(pos, Quaternion.LookRotation(target - pos) * Quaternion.Euler(hh.x, hh.y, hh.x * 0.6f));
-            if (!said1 && t > 0.8f) { said1 = true; Say("KUBA", kuba, "Nagrywasz? Dobra... to tutaj. Stary magazyn „Kogucika”. Podobno cała nocna zmiana zniknęła tu bez śladu.", "Recording? Okay... this is it. The old \"Kogucik\" warehouse. They say the whole night shift vanished here without a trace.", 4.6f); }
-            if (!said2 && t > 5.6f) { said2 = true; Say("OLA", ola, "Ciii... słyszysz? Coś stuka. Pod podłogą...", "Shh... hear that? Something's knocking. Under the floor...", 3.6f); }
+            if (!said1 && t > 0.8f) { said1 = true; Say("JACK", kuba, "Nagrywasz? Dobra... to tutaj. Stary magazyn „Kogucika”. Podobno cała nocna zmiana zniknęła tu bez śladu.", "Recording? Okay... this is it. The old \"Kogucik\" warehouse. They say the whole night shift vanished here without a trace.", 4.6f); }
+            if (!said2 && t > 5.6f) { said2 = true; Say("MARY", ola, "Ciii... słyszysz? Coś stuka. Pod podłogą...", "Shh... hear that? Something's knocking. Under the floor...", 3.6f); }
             if (!creak && t > 6.8f) { creak = true; sfx.PlayOneShot(ProceduralAudio.Creak(31), 1f); }
             yield return null;
         }
 
         // --- ujęcie 2: podłoga się zapada ---
         sfx.PlayOneShot(ProceduralAudio.FloorBreak(), 1f);
-        Say("KUBA", kuba, "MAREK!!! Uważaj!", "MAREK!!! Watch out!", 2.2f);
+        Say("JACK", kuba, "UWAŻAJ!!!", "WATCH OUT!!!", 2.2f);
         var vel = new Vector3[introFloorPieces.Length];
         var spin = new Vector3[introFloorPieces.Length];
         for (int i = 0; i < vel.Length; i++)
@@ -551,8 +584,8 @@ public class StoryDirector : MonoBehaviour
             Vector3 camPos = Vector3.Lerp(endCamStart.position, endCamEnd.position, Mathf.SmoothStep(0f, 1f, t / shot));
             Vector3 lookAt = Vector3.Lerp(endCamLook.position, p.transform.position + Vector3.up * 1.4f, 0.5f);
             cutCam.transform.SetPositionAndRotation(camPos, Quaternion.LookRotation(lookAt - camPos));
-            if (!l1 && t > 1.5f) { l1 = true; Say("ECHO-1", echo1, "Agencja ECHO, raport 0412: ocalały odzyskany. Strefa „Poza zasięgiem” – zamykamy przejście.", "ECHO Agency, report 0412: survivor recovered. \"Out of Range\" zone – closing the passage.", 4.2f); }
-            if (!l2 && t > 6f) { l2 = true; Say("KUBA", kuba, "Marek?! Stary... nie było cię trzy dni!", "Marek?! Dude... you've been gone for three days!", 3f); }
+            if (!l1 && t > 1.5f) { l1 = true; Say("ECHO-1", echo1, "Agencja ECHO, raport 0412: ocalały odzyskany. Strefa „Izolacja” – zamykamy przejście.", "ECHO Agency, report 0412: survivor recovered. \"Isolation\" zone – closing the passage.", 4.2f); }
+            if (!l2 && t > 6f) { l2 = true; Say("JACK", kuba, "Stary?! Nie było cię trzy dni!", "Dude?! You've been gone for three days!", 3f); }
             if (!l3 && t > 9f) { l3 = true; Say("ECHO-1", echo1, "Obiekt „Pracownik” – nie odnaleziony. Na razie.", "Subject \"Employee\" – not found. For now.", 3f); }
             if (endPortal != null && t > 8.5f)
                 endPortal.localScale = Vector3.one * Mathf.Lerp(1f, 0.01f, Mathf.SmoothStep(0f, 1f, (t - 8.5f) / 1.8f));
@@ -702,9 +735,9 @@ public class StoryDirector : MonoBehaviour
 
         if (credits)
         {
-            Text(new Rect(0, sh * 0.3f, sw, 120 * k), Loc.T("POZA ZASIĘGIEM", "OUT OF RANGE"), bigStyle, Color.white);
+            Text(new Rect(0, sh * 0.3f, sw, 120 * k), "THE BACKROOMS: ISOLATION", bigStyle, Color.white);
             Text(new Rect(0, sh * 0.45f, sw, 40 * k), Loc.T("Dziękujemy za grę!", "Thank you for playing!"), smallStyle, Color.white);
-            Text(new Rect(0, sh * 0.52f, sw, 40 * k), Loc.T("Agencja ECHO – Służba Odzyskiwania Zaginionych Poza Zasięgiem", "ECHO Agency – Out-of-Range Recovery Service"), smallStyle, new Color(0.45f, 0.9f, 1f));
+            Text(new Rect(0, sh * 0.52f, sw, 40 * k), Loc.T("Agencja ECHO – Służba Odzyskiwania Zaginionych", "ECHO Agency – Missing Persons Recovery Service"), smallStyle, new Color(0.45f, 0.9f, 1f));
             Text(new Rect(0, sh * 0.68f, sw, 40 * k), Loc.T("...coś wciąż stuka w rurach.", "...something is still knocking in the pipes."), smallStyle, new Color(0.7f, 0.15f, 0.12f));
             return;
         }

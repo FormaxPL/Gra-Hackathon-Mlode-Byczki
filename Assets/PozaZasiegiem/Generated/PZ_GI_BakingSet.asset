@@ -24,7 +24,7 @@ MonoBehaviour:
   singleSceneMode: 1
   dialogNoProbeVolumeInSetShown: 0
   settings:
-    m_Version: 1
+    m_Version: 0
     dilationSettings:
       enableDilation: 0
       dilationDistance: 0
@@ -36,10 +36,10 @@ MonoBehaviour:
       validityThreshold: 0.25
       outOfGeoOffset: 0
       searchMultiplier: 0
-      rayOriginBias: -0.001
+      rayOriginBias: 0
       collisionMask:
         serializedVersion: 2
-        m_Bits: 4294967291
+        m_Bits: 0
   m_SceneGUIDs:
   - 40741e092c3b7c946a3ce6ca53e0e7e0
   obsoleteScenesToNotBake: []
@@ -484,7 +484,7 @@ MonoBehaviour:
   supportLayerMaskChunkSize: 0
   supportOffsetsChunkSize: 0
   supportDataChunkSize: 163840
-  lightingScenario: Awaria
+  lightingScenario: Prad
   version: 2
   freezePlacement: 0
   probeOffset: {x: 0, y: 0, z: 0}

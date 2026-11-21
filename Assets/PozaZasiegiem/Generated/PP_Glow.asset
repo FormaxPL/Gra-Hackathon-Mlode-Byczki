@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PP_Glow
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 4559753307424819568}
---- !u!114 &4559753307424819568
+  - {fileID: 7539864529097029940}
+--- !u!114 &7539864529097029940
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}

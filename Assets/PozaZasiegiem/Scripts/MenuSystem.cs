@@ -142,7 +142,7 @@ public class MenuSystem : MonoBehaviour
         {
             float flick = Random.value < 0.03f ? 0.4f : 1f;
             GUI.color = new Color(1f, 1f, 1f, flick);
-            GUI.Label(new Rect(0, sh * 0.12f, sw, 120 * k), Loc.T("POZA ZASIĘGIEM", "OUT OF RANGE"), title);
+            GUI.Label(new Rect(0, sh * 0.12f, sw, 120 * k), "THE BACKROOMS: ISOLATION", title);
             GUI.color = Color.white;
             GUI.Label(new Rect(0, sh * 0.12f + 115 * k, sw, 40 * k),
                 Loc.T("BRAK ZASIĘGU  •  nie przestawaj nasłuchiwać", "NO SIGNAL  •  keep listening"), subtitle);
