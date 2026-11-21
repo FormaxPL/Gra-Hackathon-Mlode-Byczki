@@ -53,6 +53,24 @@ Na starcie pojawi się menu główne, a po nim intro, które można pominąć Sp
 | Esc | pauza i ustawienia |
 | R | restart po śmierci |
 | F1 | podgląd stanu AI potwora (debug) |
+| ` (tylda) | konsola komend (`trailer`, `ambient`, `menu`, `help`) |
+
+## Trailer
+
+Około 29-sekundowy trailer: nagranie z kamery w korytarzu, plansze z tekstem, właz w rurze ze świecącymi oczami, potem oczami bohatera – chodzi, rozgląda się, zapada cisza i potwór wyskakuje z wentylacji. Na końcu tytuł gry i powrót do menu. Gra się na mapie A, miejsce przy włazie wybiera się samo.
+
+Trailer odpala się komendą, na trzy sposoby:
+
+- **w grze:** klawisz ` (tylda), wpisz `trailer` i Enter,
+- **w edytorze:** **Poza Zasiegiem → Odtworz trailer** (sam wchodzi w Play), albo z wiersza poleceń:
+  `Unity.exe -projectPath "<ścieżka do projektu>" -executeMethod TrailerMenu.Play`,
+- **w zbudowanej grze:** uruchom ją z argumentem `-trailer`, np. `Gra.exe -trailer`.
+
+Do nagrania najlepiej użyć okna Game w pełnym ekranie (albo zbudowanej gry) i OBS-a.
+
+## Ambient
+
+Przez całą grę (menu, mapy, przerywniki, trailer) leci straszne tło: niski, dudniący dron, a co kilkanaście sekund z losowej strony dochodzi stukanie i jęk rur nad sufitem, szept zza ściany, skrzypienie albo kapanie. Wszystko jest generowane kodem (`AmbientScape.cs`, `ProceduralAudio.cs`). W konsoli: `ambient off` wyłącza, `ambient on` włącza, `ambient 0.5` ustawia głośność.
 
 ## Struktura projektu
 

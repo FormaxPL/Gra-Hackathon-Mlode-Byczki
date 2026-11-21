@@ -54,7 +54,7 @@ public class MenuSystem : MonoBehaviour
         PlayerController.LockCursor(false);
     }
 
-    static void LoadScene(string name)
+    public static void LoadScene(string name)
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
@@ -101,7 +101,7 @@ public class MenuSystem : MonoBehaviour
     void Update()
     {
         var gm = GameManager.Instance;
-        if (!GameInput.EscapeDown) return;
+        if (!GameInput.EscapeDown || DevConsole.IsOpen) return;
         if (page == Page.Settings || page == Page.Controls) { page = back; return; }
         if (page == Page.Pause) { Close(); return; }
         if (page != Page.None) return;

@@ -125,6 +125,7 @@ public class StoryDirector : MonoBehaviour
     /// <summary>Wywoływane przez menu po "Rozpocznij grę" (albo od razu po restarcie).</summary>
     public void OnGameStart()
     {
+        if (TrailerDirector.TryBegin()) { introSeen = true; return; } // komenda „trailer” – zamiast intro
         if (checkpoint) { ApplyCheckpoint(); return; }
         if (!introSeen && introCamStart != null) { routine = StartCoroutine(Intro()); return; }
         if (GameManager.Instance != null) GameManager.Instance.ShowIntro();

@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
     public AudioSource Ambience { get; private set; }
     public bool IsDying => DeathSequence.Instance != null && DeathSequence.Instance.Playing && !IsOver;
     public bool IsReading => HandInteraction.Instance != null && HandInteraction.Instance.IsReading;
-    public bool InputBlocked => IsOver || noteOpen || IsDying || IsReading || MenuSystem.IsOpen || PlayerController.CutsceneLock;
+    public bool InputBlocked => IsOver || noteOpen || IsDying || IsReading || MenuSystem.IsOpen || PlayerController.CutsceneLock || DevConsole.IsOpen;
 
     string prompt, message, noteText, endTitle, endText;
     float messageUntil, flashUntil, flashDuration = 0.5f;
