@@ -6,11 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/PozaZasiegiem/Scenes/TestLevel.unity
-    guid: 40741e092c3b7c946a3ce6ca53e0e7e0
+    path: Assets/PozaZasiegiem/Scenes/MainMenu.unity
+    guid: 182df8ef0749dcd44a20c6b2c4581106
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/PozaZasiegiem/Scenes/TestLevel_A.unity
+    guid: 21770debe46e08f40822c59b0a8223a8
+  - enabled: 1
+    path: Assets/PozaZasiegiem/Scenes/TestLevel_B.unity
+    guid: da8fe284ee0d9c44f9250b372dfe3409
+  - enabled: 1
+    path: Assets/PozaZasiegiem/Scenes/TestLevel_C.unity
+    guid: 661c091526eb75e49a085a45076406e7
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

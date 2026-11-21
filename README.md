@@ -31,7 +31,7 @@ Bez AERO gra działa normalnie, tylko z prostszą mgłą z cząsteczek.
 
 2. W Unity Hub wybierz **Add → Add project from disk** i wskaż pobrany folder.
 3. Otwórz projekt w **Unity 6000.6.10f1**. Pierwsze otwarcie trwa kilka minut, bo Unity buduje folder `Library`.
-4. Otwórz scenę `Assets/PozaZasiegiem/Scenes/TestLevel` i wciśnij **Play**.
+4. Otwórz scenę `Assets/PozaZasiegiem/Scenes/MainMenu` i wciśnij **Play**. „Rozpocznij grę” losuje jedną z 3 map – przy każdym uruchomieniu inny układ pomieszczeń.
 
 Na starcie pojawi się menu główne, a po nim intro, które można pominąć Spacją. Efekty graficzne (bloom, noktowizja, wizjer kamery) widać w oknie **Game**, a nie w Scene.
 
@@ -63,7 +63,8 @@ Assets/PozaZasiegiem/
 ├── Models/entity.fbx        model potwora
 ├── Shaders/                 shader snopów światła
 ├── Generated/               materiały tworzone przez generator
-├── Scenes/TestLevel.unity   gotowa scena gry
+├── Scenes/MainMenu.unity    menu główne (korytarz Backrooms z potworem)
+├── Scenes/TestLevel_A/B/C   trzy gotowe mapy, losowane przy starcie
 └── README.md                szczegółowy opis mechanik i strojenia
 ```
 
@@ -77,10 +78,11 @@ Ważniejsze skrypty:
 
 ## Generowanie poziomu od nowa
 
-Scena `TestLevel` powstaje z kodu. Żeby ją zbudować ponownie, wybierz w górnym menu Unity:
+Mapy i menu powstają z kodu. Żeby zbudować wszystko od nowa, wybierz w górnym menu Unity:
 
-- **Poza Zasiegiem → Zbuduj scene testowa (staly uklad)**: zawsze ta sama mapa
-- **Poza Zasiegiem → Zbuduj scene testowa (losowy uklad)**: nowa, losowa mapa
+- **Poza Zasiegiem → Zbuduj wszystkie mapy i menu**: buduje 3 mapy (`TestLevel_A/B/C`), każdą od razu wypala (GI), potem menu główne i kolejność scen w Build Settings. Trwa ok. 6–10 minut.
+- **Poza Zasiegiem → Zbuduj scene testowa (staly uklad)**: tylko mapa A (szybciej, do testów).
+- **Poza Zasiegiem → Zbuduj tylko menu**: samo menu (wymaga zbudowanej mapy A – kopiuje z niej potwora).
 
 Po przebudowie mapy wypal oświetlenie globalne (odbite światło od ścian i podłóg):
 
@@ -88,13 +90,13 @@ Po przebudowie mapy wypal oświetlenie globalne (odbite światło od ścian i po
 
 Nie zmieniaj skryptów w trakcie wypalania, bo przekompilowanie je przerwie.
 
-> **Uwaga:** generator nadpisuje `TestLevel.unity`. Ręczne zmiany w tej scenie przepadną, więc jeśli coś w niej układacie, najpierw zróbcie kopię sceny.
+> **Uwaga:** generator nadpisuje sceny `TestLevel_A/B/C` i `MainMenu`. Ręczne zmiany w tych scenach przepadną, więc jeśli coś w niej układacie, najpierw zróbcie kopię sceny.
 
 Szczegóły mechanik, strojenie potwora i rozwiązywanie problemów z grafiką są w [Assets/PozaZasiegiem/README.md](Assets/PozaZasiegiem/README.md).
 
 ## Praca w drużynie
 
 - Przed rozpoczęciem pracy pobierzcie zmiany: `git pull`.
-- **Nie edytujcie tej samej sceny w kilka osób naraz.** Pliki `.unity` źle się scalają w Gicie. Umówcie się, kto w danej chwili pracuje na `TestLevel`, albo róbcie zmiany w osobnych scenach i prefabach.
+- **Nie edytujcie tej samej sceny w kilka osób naraz.** Pliki `.unity` źle się scalają w Gicie. Umówcie się, kto w danej chwili pracuje na której scenie, albo róbcie zmiany w osobnych scenach i prefabach.
 - Commitujcie zawsze plik razem z jego `.meta`. Bez `.meta` Unity zgubi powiązania między assetami.
 - Folderów `Library`, `Temp`, `Logs` i `UserSettings` nie dodajemy do repozytorium. Pomija je `.gitignore`.
