@@ -44,7 +44,14 @@ public class Blackout : MonoBehaviour
     }
 
     // po przeładowaniu sceny w trakcie awarii światła mogły się wyłączyć, zanim Active wróciło na false
-    void Start() => LightCategory.ApplyAll();
+    IEnumerator Start()
+    {
+        LightCategory.ApplyAll();
+        // Po przeładowaniu sceny (np. restart w trakcie awarii) odbite światło ma startować z prądem.
+        // Scenariusz APV przeżywa przeładowanie, a dane sond wczytują się dopiero po Start – czekamy na nie.
+        for (float t = 0f; t < 5f && !GiScenario.IsAvailable; t += Time.unscaledDeltaTime) yield return null;
+        if (!Active) GiScenario.Set(GiScenario.Power);
+    }
 
     void OnDestroy() { if (Instance == this) Active = false; }
 
@@ -94,15 +101,25 @@ public class Blackout : MonoBehaviour
                 SetPower(false);
                 yield return new WaitForSeconds(Random.Range(0.1f, 0.25f));
             }
-        SetPower(true);
+        SetPower(true, false);
+        // odbite światło (GI) wraca płynnie: z wypalonej „Awarii” do „Prądu” w 0,5 s
+        const float giBlend = 0.5f;
+        for (float t = 0f; t < giBlend; t += Time.deltaTime)
+        {
+            GiScenario.Blend(GiScenario.Power, t / giBlend);
+            yield return null;
+        }
+        GiScenario.Set(GiScenario.Power);
         routine = null;
     }
 
-    void SetPower(bool on)
+    void SetPower(bool on, bool giInstant = true)
     {
         bool blackout = !on;
         if (Active == blackout) return;
         Active = blackout;
+        // wypalone odbicia gasną i zapalają się razem z lampami (każde mrugnięcie migotania)
+        if (giInstant) GiScenario.Set(on ? GiScenario.Power : GiScenario.Outage);
 
         if (!saved)
         {
