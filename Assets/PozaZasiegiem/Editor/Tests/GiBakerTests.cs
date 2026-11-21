@@ -211,6 +211,15 @@ public class GiBakerTests
         Object.DestroyImmediate(m);
     }
 
+    // ---------- każda mapa ma własny zestaw wypalania ----------
+
+    [Test]
+    public void BakingSetPath_IsPerMap()
+    {
+        StringAssert.EndsWith("PZ_GI_BakingSet_TestLevel_B.asset", GiBaker.BakingSetPathFor("TestLevel_B"));
+        Assert.AreNotEqual(GiBaker.BakingSetPathFor("TestLevel_A"), GiBaker.BakingSetPathFor("TestLevel_B"));
+    }
+
     // ---------- przebudowa mapy usuwa stare dane wypalania (leżą obok zestawu, nie w podfolderze) ----------
 
     [Test]

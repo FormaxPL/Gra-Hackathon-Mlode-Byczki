@@ -21,7 +21,11 @@ public static class LevelBuilder
 {
     const string Root = "Assets/PozaZasiegiem";
     const string GenDir = Root + "/Generated";
-    const string ScenePath = Root + "/Scenes/TestLevel.unity";
+    const string ScenesDir = Root + "/Scenes";
+    /// <summary>Scena budowana w tej chwili (każda mapa w osobnym pliku).</summary>
+    static string ScenePath = ScenesDir + "/TestLevel_A.unity";
+    /// <summary>Ziarna gotowych map (MapPicker.Maps): A = stały układ z poprzednich wersji.</summary>
+    public static readonly int[] MapSeeds = { 12345, 24680, 36912 };
 
     const int W = 9, H = 9;
     const float Cell = 6f, WallH = 3.2f, WallT = 0.25f, DoorW = 2.2f, DoorH = 2.45f;
@@ -92,10 +96,17 @@ public static class LevelBuilder
     public static string LastReport = "";
 
     [MenuItem("Poza Zasiegiem/Zbuduj scene testowa (staly uklad)", false, 1)]
-    public static void BuildFixed() => Build(12345);
+    public static void BuildFixed() => BuildMap(MapPicker.Maps[0], MapSeeds[0]);
 
     [MenuItem("Poza Zasiegiem/Zbuduj scene testowa (losowy uklad)", false, 2)]
-    public static void BuildRandom() => Build(System.Environment.TickCount);
+    public static void BuildRandom() => BuildMap(MapPicker.Maps[0], System.Environment.TickCount);
+
+    /// <summary>Buduje jedną mapę do Assets/PozaZasiegiem/Scenes/    public static void BuildRandom() => Build(System.Environment.TickCount);lt;sceneName    public static void BuildRandom() => Build(System.Environment.TickCount);gt;.unity.</summary>
+    public static void BuildMap(string sceneName, int seed)
+    {
+        ScenePath = ScenesDir + "/" + sceneName + ".unity";
+        Build(seed);
+    }
 
     static void Build(int seed)
     {
@@ -2384,7 +2395,7 @@ public static class LevelBuilder
             : "Grafika: URP aktywny, ale nie znaleziono assetu URP do konfiguracji – włącz ręcznie: URP Asset > Lighting > Additional Lights > Cast Shadows.";
     }
 
-    static string SetupPostProcessing(GameObject camGo)
+    internal static string SetupPostProcessing(GameObject camGo)
     {
         if (!urp) return "Post-processing: pominięty (projekt bez URP).";
         var volT = FindType("UnityEngine.Rendering.Volume");
@@ -2615,6 +2626,13 @@ public static class LevelBuilder
         r.shadowCastingMode = shadows;
         if (collider) g.AddComponent<BoxCollider>().size = size;
         return g;
+    }
+
+    /// <summary>Bryła z UV w metrach (jak w mapach) – dla innych generatorów, np. sceny menu.</summary>
+    internal static GameObject WorldBox(string name, Transform parent, Vector3 pos, Vector3 size, Material m, bool collider = true)
+    {
+        if (meshCache == null) meshCache = new Dictionary<string, Mesh>();
+        return Box(name, parent, pos, size, m, collider, false, null, 0f);
     }
 
     /// <summary>Bryła w układzie lokalnym rodzica.</summary>
@@ -3986,7 +4004,7 @@ public static class LevelBuilder
         }
     }
 
-    static void SetupRendering()
+    internal static void SetupRendering()
     {
         RenderSettings.skybox = null;
         RenderSettings.ambientMode = AmbientMode.Flat;
@@ -3997,14 +4015,85 @@ public static class LevelBuilder
         RenderSettings.fogColor = new Color(0.015f, 0.016f, 0.02f);
     }
 
-    static void AddSceneToBuild()
+    static void AddSceneToBuild() => SetBuildScenes();
+
+    /// <summary>Build Settings: najpierw menu, potem gotowe mapy (tylko te, które istnieją).</summary>
+    public static void SetBuildScenes()
     {
-        var list = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-        if (!list.Exists(s => s.path == ScenePath))
+        var list = new List<EditorBuildSettingsScene>();
+        void Add(string name)
         {
-            list.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
-            EditorBuildSettings.scenes = list.ToArray();
+            string p = ScenesDir + "/" + name + ".unity";
+            if (System.IO.File.Exists(p)) list.Add(new EditorBuildSettingsScene(p, true));
         }
+        Add(MapPicker.MenuScene);
+        foreach (var m in MapPicker.Maps) Add(m);
+        EditorBuildSettings.scenes = list.ToArray();
+    }
+
+    // ---------------- wszystkie mapy + menu jednym kliknięciem ----------------
+
+    static int buildAllStep = -1;
+    static System.Action buildAllDone;
+
+    /// <summary>Buduje 3 mapy (każdą od razu wypala – GI), potem scenę menu. Trwa kilka minut.</summary>
+    [MenuItem("Poza Zasiegiem/Zbuduj wszystkie mapy i menu", false, 0)]
+    public static void BuildAll() => BuildAll(null);
+
+    public static void BuildAll(System.Action done)
+    {
+        if (buildAllStep >= 0 || GiBaker.IsBaking) return;
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        buildAllDone = done;
+        buildAllStep = 0;
+        wasQuiet = Quiet; wasBakerQuiet = GiBaker.Quiet;
+        Quiet = true; GiBaker.Quiet = true; // żadnych okien w trakcie – zablokowałyby budowanie
+        BuildAllReport = "";
+        EditorApplication.update += BuildAllTick;
+    }
+
+    public static bool IsBuildingAll => buildAllStep >= 0;
+    public static string BuildAllReport = "";
+
+    static void BuildAllTick()
+    {
+        if (GiBaker.IsBaking) return; // czekamy na wypalenie poprzedniej mapy
+        if (buildAllStep > 0 && buildAllStep <= MapPicker.Maps.Length) BuildAllReport += MapPicker.Maps[buildAllStep - 1] + ": " + GiBaker.LastReport + "\n";
+        if (buildAllStep < MapPicker.Maps.Length)
+        {
+            bool q = Quiet, gq = GiBaker.Quiet;
+            Quiet = true; GiBaker.Quiet = true;
+            try
+            {
+                BuildMap(MapPicker.Maps[buildAllStep], MapSeeds[buildAllStep]);
+                buildAllStep++;
+                GiBaker.BakeBoth();
+            }
+            catch (System.Exception e) { BuildAllReport += "BŁĄD: " + e.Message + "\n"; FinishBuildAll(); }
+            finally { Quiet = q; GiBaker.Quiet = gq; }
+            return;
+        }
+        MenuSceneBuilder.Build();
+        // stara pojedyncza scena z poprzednich wersji
+        foreach (var old in new[] { ScenesDir + "/TestLevel.unity" })
+            if (System.IO.File.Exists(old)) { AssetDatabase.DeleteAsset(old); AssetDatabase.DeleteAsset(ScenesDir + "/TestLevel"); GiBaker.DeleteBakingSet(GenDir + "/PZ_GI_BakingSet.asset"); }
+        SetBuildScenes();
+        EditorSceneManager.OpenScene(ScenesDir + "/" + MapPicker.MenuScene + ".unity");
+        BuildAllReport += "Menu: " + MapPicker.MenuScene + " zbudowane. Build Settings: menu + " + MapPicker.Maps.Length + " mapy.";
+        Debug.Log("[Poza Zasięgiem] " + BuildAllReport);
+        FinishBuildAll();
+        if (!Quiet) EditorUtility.DisplayDialog("Poza Zasięgiem", BuildAllReport, "OK");
+    }
+
+    static bool wasQuiet, wasBakerQuiet;
+
+    static void FinishBuildAll()
+    {
+        EditorApplication.update -= BuildAllTick;
+        Quiet = wasQuiet; GiBaker.Quiet = wasBakerQuiet;
+        buildAllStep = -1;
+        buildAllDone?.Invoke();
+        buildAllDone = null;
     }
 
     static void EnsureFolder(string path)

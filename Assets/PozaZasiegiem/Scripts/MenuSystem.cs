@@ -166,7 +166,9 @@ public class MenuSystem : MonoBehaviour
         float sw = Screen.width, sh = Screen.height, k = sh / 1080f;
 
         // ciemne tło z winietą i migającym tytułem
-        Fill(new Rect(0, 0, sw, sh), new Color(0f, 0f, 0f, page == Page.Main ? 0.72f : 0.8f));
+        // w scenie menu tło tylko lekko przyciemnione – widać korytarz i to, co w nim chodzi
+        bool menuScene = InMenuScene && page == Page.Main;
+        Fill(new Rect(0, 0, sw, sh), new Color(0f, 0f, 0f, menuScene ? 0.25f : page == Page.Main ? 0.72f : 0.8f));
         if (page == Page.Main || page == Page.Pause)
         {
             float flick = Random.value < 0.03f ? 0.4f : 1f;
@@ -177,7 +179,7 @@ public class MenuSystem : MonoBehaviour
                 Loc.T("BRAK ZASIĘGU  •  nie przestawaj nasłuchiwać", "NO SIGNAL  •  keep listening"), subtitle);
         }
 
-        float bw = 420 * k, bh = 64 * k, x = (sw - bw) / 2f, y = sh * 0.42f, gap = 82 * k;
+        float bw = 420 * k, bh = 64 * k, x = menuScene ? sw * 0.06f : (sw - bw) / 2f, y = sh * 0.42f, gap = 82 * k;
         switch (page)
         {
             case Page.Main:

@@ -27,7 +27,10 @@ public static class GiBaker
         return !UnderAny(l.transform, MovingOrScripted);
     }
 
-    public const string BakingSetPath = "Assets/PozaZasiegiem/Generated/PZ_GI_BakingSet.asset";
+    /// <summary>Każda mapa ma własny zestaw wypalania (i dane GI), żeby mapy się nie nadpisywały.</summary>
+    public static string BakingSetPathFor(string sceneName) => "Assets/PozaZasiegiem/Generated/PZ_GI_BakingSet_" + sceneName + ".asset";
+    /// <summary>Zestaw wypalania aktywnej sceny.</summary>
+    public static string BakingSetPath => BakingSetPathFor(SceneManager.GetActiveScene().name);
     public const string LightingPath = "Assets/PozaZasiegiem/Generated/PZ_Lighting.lighting";
     const string VolumeName = "Adaptive Probe Volume (GI)";
     /// <summary>Mnożnik światła odbitego dla wypalanych lamp. Lampy to wąskie reflektory o krótkim zasięgu:
@@ -119,10 +122,10 @@ public static class GiBaker
 
         // 6) Baking Set ze scenariuszami „Prad” i „Awaria” (stare dane usuwamy razem z zestawem)
         string sceneGuid = AssetDatabase.AssetPathToGUID(scene.path);
-        DeleteBakingSet();
+        DeleteBakingSet(BakingSetPathFor(scene.name));
         var set = ScriptableObject.CreateInstance<ProbeVolumeBakingSet>();
         set.name = "PZ_GI_BakingSet";
-        AssetDatabase.CreateAsset(set, BakingSetPath);
+        AssetDatabase.CreateAsset(set, BakingSetPathFor(scene.name));
         var scenarios = new System.Collections.Generic.List<string>(set.lightingScenarios);
         if (scenarios.Count > 0 && !scenarios.Contains(GiScenario.Power)) set.RenameScenario(scenarios[0], GiScenario.Power);
         else set.TryAddScenario(GiScenario.Power);
@@ -271,7 +274,8 @@ public static class GiBaker
     {
         string dir = System.IO.Path.GetDirectoryName(BakingSetPath);
         long total = 0, biggest = 0; string biggestName = "";
-        foreach (var f in System.IO.Directory.GetFiles(dir, "*.bytes", System.IO.SearchOption.AllDirectories))
+        string baseName = System.IO.Path.GetFileNameWithoutExtension(BakingSetPath);
+        foreach (var f in System.IO.Directory.GetFiles(dir, baseName + "*.bytes"))
         {
             long len = new System.IO.FileInfo(f).Length;
             total += len;
@@ -282,7 +286,9 @@ public static class GiBaker
 
     /// <summary>Usuwa zestaw wypalania i jego dane. APV zapisuje je OBOK zestawu jako „Nazwa.Cell*.bytes”
     /// i „Nazwa-Scenariusz.Cell*.bytes” (sprawdzone w Unity 6000.6).</summary>
-    public static void DeleteBakingSet(string setPath = BakingSetPath)
+    public static void DeleteBakingSet() => DeleteBakingSet(BakingSetPath);
+
+    public static void DeleteBakingSet(string setPath)
     {
         string dir = System.IO.Path.GetDirectoryName(setPath).Replace('\\', '/');
         string baseName = System.IO.Path.GetFileNameWithoutExtension(setPath);
