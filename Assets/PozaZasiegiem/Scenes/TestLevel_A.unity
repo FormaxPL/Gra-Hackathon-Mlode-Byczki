@@ -798,7 +798,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -10360,7 +10360,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -28733,7 +28733,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -48363,7 +48363,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -62999,7 +62999,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -68889,7 +68889,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -99109,7 +99109,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -100205,7 +100205,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -109182,7 +109182,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -111570,9 +111570,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Blackout
   flashlightPower: 0.3
   flashlightRange: 0.5
+  flashlightSpill: 0.25
   lureInterval: 2.2
   lureRadius: 15
   ambientLeft: 0.06
+  reflectionLeft: 0.06
 --- !u!114 &309986086
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111626,7 +111628,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   partsRequired: 3
   debugGiveAllItems: 0
-  showDebug: 1
+  showDebug: 0
   introMessage: "Spad\u0142e\u015B pod ziemi\u0119. BRAK ZASI\u0118GU.\nZnajd\u017A 3 cz\u0119\u015Bci i napraw radiostacj\u0119 w biurze kierownika.\nNas\u0142uchuj stukania w rurach pod sufitem.  [PPM] kamera"
   introMessageEn: 'You fell underground. NO SIGNAL.
 
@@ -125775,7 +125777,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -139124,7 +139126,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -141213,7 +141215,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.099999994
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -144529,7 +144531,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -150002,7 +150004,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -151133,7 +151135,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -159231,7 +159233,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -166363,7 +166365,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -168516,7 +168518,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.099999994
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -170138,7 +170140,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -173542,7 +173544,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -180082,7 +180084,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -189041,7 +189043,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -192694,7 +192696,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -199553,7 +199555,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -213638,7 +213640,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -236188,7 +236190,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -239264,7 +239266,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -252725,7 +252727,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -255693,7 +255695,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -264843,7 +264845,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -269814,7 +269816,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -272071,7 +272073,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -285606,7 +285608,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -315291,7 +315293,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -316625,7 +316627,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -332316,6 +332318,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 286b4216db884fc198cab5d296bbc9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
+  id: 
   title: Grafik zmian
   text: "GRAFIK ZMIAN\n\nPoniedzia\u0142ek: Kasia, Tomek, Pracownik\nPoniedzia\u0142ek: Kasia, Tomek, Pracownik\nPoniedzia\u0142ek: Kasia, Pracownik\nPoniedzia\u0142ek: Pracownik\nPoniedzia\u0142ek: Pracownik\n\n(dopisane d\u0142ugopisem)\nKto to jest Pracownik? Nikt go nie zatrudnia\u0142.\nFrytownica jest za du\u017Ca. Wczoraj by\u0142a normalna. Ga\u015Bnica wisi przy grillu."
   titleEn: Shift schedule
@@ -340027,7 +340030,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -377220,7 +377223,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -379869,7 +379872,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -385575,7 +385578,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -399864,7 +399867,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -403076,7 +403079,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -410309,7 +410312,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -413039,7 +413042,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -417509,7 +417512,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -419529,7 +419532,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -427570,7 +427573,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -432077,7 +432080,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -445819,6 +445822,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 286b4216db884fc198cab5d296bbc9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
+  id: 
   title: Notatka kierownika zmiany
   text: "Do wszystkich zmian:\n\nCo\u015B chodzi w rurach pod sufitem. Najpierw s\u0142ycha\u0107 stukanie,\nrury dr\u017C\u0105, z po\u0142\u0105cze\u0144 sypie si\u0119 kurz. Kiedy kurz leci \u2013 NIE RUSZAJ SI\u0118.\n\nCzasem czeka nad w\u0142azem. S\u0142ycha\u0107 wtedy ciche mruczenie i z rury kapie.\nNIE PRZECHOD\u0179 POD SPODEM.\n\nGa\u015Bnica je odstrasza. Widzia\u0142em, jak uciek\u0142o do rury.\nAle wraca. Zawsze wraca tam, gdzie ostatnio s\u0142ysza\u0142o ludzi.\n\n\u2013 kierownik zmiany"
   titleEn: Shift manager's memo
@@ -447031,7 +447035,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -449774,7 +449778,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -450550,7 +450554,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -462057,7 +462061,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -478652,7 +478656,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -485880,7 +485884,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -495065,7 +495069,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -499940,7 +499944,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -508932,7 +508936,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -541844,7 +541848,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.099999994
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -553119,7 +553123,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -560865,7 +560869,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -562753,7 +562757,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -566083,7 +566087,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -604447,7 +604451,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -618114,7 +618118,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -621812,7 +621816,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -629607,7 +629611,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -634075,7 +634079,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -636131,7 +636135,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -637660,7 +637664,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -642756,7 +642760,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -683411,7 +683415,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -692755,6 +692759,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 286b4216db884fc198cab5d296bbc9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
+  id: 
   title: Pognieciona kartka
   text: "Dzie\u0144 34.\n\nJe\u015Bli kto\u015B to czyta \u2013 NIE BIEGAJ. To co\u015B s\u0142yszy kroki.\nKucanie (Ctrl) jest ciche. Latarka (F) pomaga, ale wida\u0107 ci\u0119 z daleka \u2013 i nie \u015Bwie\u0107 NA NIEGO.\n\nSzafki ratuj\u0105 \u017Cycie (E). Je\u015Bli zacznie w\u0119szy\u0107 przy twojej \u2013 wstrzymaj oddech (Spacja).\nAle je\u015Bli zobaczy, jak do niej wchodzisz...\n\nPod sufitem biegn\u0105 grube rury. Ono w nich chodzi \u2013 s\u0142ycha\u0107 stukanie, a rury dr\u017C\u0105.\nTwoja kamera wci\u0105\u017C dzia\u0142a. Ma noktowizj\u0119 (PPM, potem F). Ono jej nie widzi.\n\nZostawi\u0142em wykrywacz ruchu niedaleko st\u0105d. Radiostacja w biurze kierownika jeszcze dzia\u0142a.\nTu nie ma zasi\u0119gu. Tylko ona mo\u017Ce nas st\u0105d wyci\u0105gn\u0105\u0107.\n\n- K."
   titleEn: Crumpled note
@@ -695054,7 +695059,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -700631,7 +700636,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.099999994
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -701657,7 +701662,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -705039,6 +705044,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 286b4216db884fc198cab5d296bbc9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
+  id: 
   title: Ankieta klienta
   text: "ANKIETA KLIENTA\n\nJak oceniasz swoj\u0105 wizyt\u0119?   1/5\n\nUwagi: Nie mog\u0119 znale\u017A\u0107 wyj\u015Bcia. Krzes\u0142a s\u0105 za du\u017Ce. Sto\u0142y wisz\u0105 pod sufitem.\nKto\u015B w naszej czapce stoi za lad\u0105 od tygodnia i si\u0119 nie rusza.\nKiedy si\u0119 odwracam \u2013 stoi bli\u017Cej."
   titleEn: Customer survey
@@ -719197,7 +719203,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -722137,7 +722143,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -732634,7 +732640,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -734608,6 +734614,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 286b4216db884fc198cab5d296bbc9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
+  id: 
   title: "Transkrypcja \u2013 108.7 MHz"
   text: "TRANSKRYPCJA \u2013 108.7 MHz (fragment)\n\n\"...je\u015Bli kto\u015B to s\u0142yszy, tu Agencja ECHO.\nTa strefa jest POZA ZASI\u0118GIEM naszych sieci. Jedyny kana\u0142 to radiostacja w biurze kierownika.\nPotrzebne: antena, lampa nadawcza, zasilacz.\nNadaj sygna\u0142, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]"
   titleEn: "Transcript \u2013 108.7 MHz"
@@ -748821,7 +748828,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -754183,7 +754190,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -761779,7 +761786,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 1
@@ -769509,7 +769516,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.06
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -770124,7 +770131,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -775619,7 +775626,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -778703,7 +778710,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -787362,7 +787369,7 @@ Light:
     m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.05
+    m_NearPlane: 0.055
     m_CullingMatrixOverride:
       e00: 1
       e01: 0

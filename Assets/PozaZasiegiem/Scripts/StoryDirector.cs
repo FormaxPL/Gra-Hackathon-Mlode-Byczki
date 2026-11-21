@@ -157,6 +157,9 @@ public class StoryDirector : MonoBehaviour
 
         if (cutscene && skippable && !MenuSystem.IsOpen && GameInput.SkipDown) SkipIntro();
         if (cutscene) return;
+        // po złapaniu przez potwora fabuła stoi – inaczej np. zakończenie ruszyłoby w trakcie ekranu śmierci
+        var gm = GameManager.Instance;
+        if (gm != null && (gm.IsOver || gm.IsDying)) return;
 
         switch (CurrentPhase)
         {
@@ -609,12 +612,12 @@ public class StoryDirector : MonoBehaviour
         sfx.PlayOneShot(ProceduralAudio.Thump(0.25f, 60f, 5), 0.8f);
         yield return new WaitForSeconds(3.5f);
 
-        // 5. powrót do menu głównego
+        // 5. powrót do menu głównego (osobna scena – następna gra losuje nową mapę)
         introSeen = false;
         checkpoint = false;
         MenuSystem.skipMainMenuOnce = false;
         PlayerController.CutsceneLock = false;
-        if (GameManager.Instance != null) GameManager.Instance.Restart();
+        MenuSystem.LoadScene(MapPicker.MenuScene);
     }
 
     IEnumerator FadeOut(AudioSource a, float time)

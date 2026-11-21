@@ -21,7 +21,30 @@ Projekt nie potrzebuje żadnych płatnych ani dodatkowych assetów. Tekstury i d
 
 Bez AERO gra działa normalnie, tylko z prostszą mgłą z cząsteczek.
 
-## Jak uruchomić
+## Zagraj bez Unity (Windows)
+
+1. Wejdź w zakładkę [**Releases**](https://github.com/FormaxPL/Gra-Hackathon-Mlode-Byczki/releases) i pobierz plik `TheBackroomsIsolation-Windows.zip`.
+2. Rozpakuj całe archiwum (nie uruchamiaj gry z wnętrza ZIP-a).
+3. Uruchom `TheBackroomsIsolation.exe`. Windows SmartScreen może ostrzec przed nieznanym wydawcą – wybierz **Więcej informacji → Uruchom mimo to**.
+
+Gra startuje na pełnym ekranie. Tryb okna i rozdzielczość zmienisz w **Ustawieniach**.
+
+## Jak zbudować grę (.exe)
+
+1. Otwórz projekt w Unity (patrz niżej).
+2. **File → Build Profiles**, wybierz **Windows** (sceny `MainMenu` i `TestLevel_A/B/C` są już na liście).
+3. Kliknij **Build** i wskaż pusty folder, np. `Builds/Windows` (folder `Builds/` jest w `.gitignore`).
+4. Do ZIP-a spakuj wszystko z folderu builda **oprócz** `*_BackUpThisFolder_ButDontShipItWithYourGame`.
+
+Pierwszy build trwa kilkanaście minut (kompilacja shaderów), kolejne są dużo szybsze.
+
+Gotowy ZIP wrzucisz na GitHuba przez **Releases → Draft a new release**: nadaj tag (np. `v1.0`), przeciągnij ZIP do pola z plikami i kliknij **Publish release**. Albo z terminala:
+
+```bash
+gh release create v1.0 TheBackroomsIsolation-Windows.zip --title "The Backrooms: Isolation v1.0"
+```
+
+## Jak uruchomić w Unity
 
 1. Pobierz projekt:
 
