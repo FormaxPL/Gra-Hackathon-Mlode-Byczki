@@ -16,12 +16,19 @@ public class Blackout : MonoBehaviour
     public float flashlightPower = 0.3f;
     [Tooltip("Zasięg latarki podczas awarii (0..1)")]
     public float flashlightRange = 0.5f;
+    [Tooltip("Dodatkowe osłabienie rozproszenia latarki (szeroki stożek 115°) podczas awarii, ponad flashlightPower. " +
+             "Rozproszenie tuż przy kamerze rozświetla mgłę wolumetryczną na cały kadr – przy 1.0 dawało większość jasności obrazu.")]
+    [Range(0, 1)] public float flashlightSpill = 0.25f;
     [Tooltip("Co ile sekund włączona latarka 'wabi' potwora")]
     public float lureInterval = 2.2f;
     public float lureRadius = 15f;
     [Range(0, 1)] public float ambientLeft = 0.06f;
+    [Tooltip("Ile zostaje z odbić otoczenia (refleksów) podczas awarii. Odbicia nie zależą od ambientu ani od sond GI – " +
+             "bez tego podłoga i meble świeciły równą, niebieskawą poświatą w całym kadrze (pomiar 2026-11-21, mapa C).")]
+    [Range(0, 1)] public float reflectionLeft = 0.06f;
 
     float endTime = -1f, nextLure;
+    float savedReflection;
     Color savedAmbient, savedFog, savedCamBg;
     bool saved;
     readonly List<Renderer> swapped = new List<Renderer>();
@@ -125,11 +132,13 @@ public class Blackout : MonoBehaviour
         {
             savedAmbient = RenderSettings.ambientLight;
             savedFog = RenderSettings.fogColor;
+            savedReflection = RenderSettings.reflectionIntensity;
             var cam = Camera.main;
             if (cam != null) savedCamBg = cam.backgroundColor;
             saved = true;
         }
         RenderSettings.ambientLight = blackout ? savedAmbient * ambientLeft : savedAmbient;
+        RenderSettings.reflectionIntensity = blackout ? savedReflection * reflectionLeft : savedReflection;
         RenderSettings.fogColor = blackout ? Color.black : savedFog;
         if (Camera.main != null) Camera.main.backgroundColor = blackout ? Color.black : savedCamBg;
         if (blackout) SwapEmissives(); else RestoreEmissives();

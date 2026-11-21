@@ -60,17 +60,18 @@ public class Flashlight : MonoBehaviour
         if (battery < 30f) k *= Mathf.Lerp(0.5f, 1f, battery / 30f);   // słabnie przy końcu baterii
         if (battery < 15f && Random.value < 0.08f) k *= Random.Range(0.1f, 0.6f);
         // awaria prądu: latarka "mało daje" – słaba, krótka i migocze
-        float rangeK = 1f;
+        float rangeK = 1f, spillK = 1f;
         var bo = Blackout.Instance;
         if (Blackout.Active && bo != null)
         {
             k *= bo.flashlightPower * (Random.value < 0.05f ? Random.Range(0.3f, 0.8f) : 1f);
             rangeK = bo.flashlightRange;
+            spillK = bo.flashlightSpill;
         }
         spot.range = baseRange * rangeK;
         if (spill != null) spill.range = spillRange * rangeK;
         spot.intensity = baseIntensity * k;
-        if (spill != null) spill.intensity = spillBase * k;
+        if (spill != null) spill.intensity = spillBase * k * spillK;
         if (beamMat != null && beamMat.HasProperty("_Color"))
         {
             var c = beamColor; c.a *= k; beamMat.SetColor("_Color", c);
