@@ -3880,6 +3880,10 @@ public static class LevelBuilder
         // skrypt oświetlenia mgły z paczki AERO → nasz odpowiednik (bez AERO w projekcie nie ma „missing feature”)
         ReplaceAeroLightingFeature(copy, aeroMat);
         EditorUtility.SetDirty(copy);
+        // oryginalny renderer AERO niesie porzucone podobiekty ze skryptami, których nie ma nawet w paczce
+        // (stare wersje feature'ów) – w repozytorium nie mogą zostać, bo wskazują też na materiały AERO
+        AssetDatabase.SaveAssets();
+        AssetDatabase.RemoveScriptableObjectsWithMissingScript(dst);
 
         // dopisz renderer z mgłą do każdego assetu URP (kamera przełącza się na niego w ustawieniach)
         int added = 0;
