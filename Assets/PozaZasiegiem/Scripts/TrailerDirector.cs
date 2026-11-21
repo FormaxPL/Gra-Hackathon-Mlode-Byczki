@@ -580,9 +580,51 @@ public class TrailerDirector : MonoBehaviour
         MenuSystem.LoadScene(MapPicker.MenuScene);
     }
 
+    // ---- glitch napisów: co chwilę krótki „skok” (rozciągnięcie na cały ekran, rozjechane kolory), pomiędzy lekkie mruganie ----
+    float glitchUntil, nextGlitch = 0.5f;
+    AudioClip glitchClip;
+
+    bool TextVisible => (!string.IsNullOrEmpty(card) && cardAlpha > 0.3f) || titleT >= 0f;
+
     void Update()
     {
         flash = Mathf.MoveTowards(flash, 0f, Time.deltaTime * 1.4f);
+        if (!TextVisible) { nextGlitch = Mathf.Max(nextGlitch, Time.time + 0.25f); return; }
+        if (Time.time < nextGlitch) return;
+        glitchUntil = Time.time + Random.Range(0.06f, 0.2f);
+        nextGlitch = Time.time + Random.Range(0.35f, 1.3f);
+        if (glitchClip == null) glitchClip = ProceduralAudio.Noise(0.12f, 0.9f, "Glitch");
+        sfx.PlayOneShot(glitchClip, 0.22f);
+    }
+
+    /// <summary>Napis z glitchem: w czasie „skoku” rozciąga się w poziomie (czasem na cały ekran) i rozjeżdża na kanały RGB.</summary>
+    void GlitchText(Rect r, string s, GUIStyle style, Color c, float strength = 1f)
+    {
+        if (c.a <= 0.001f) return;
+        // lekkie mruganie przez cały czas
+        if (Random.value < 0.07f * strength) c.a *= Random.Range(0.25f, 0.7f);
+        bool burst = Time.time < glitchUntil && strength > 0f;
+        if (!burst)
+        {
+            Text(r, s, style, c);
+            return;
+        }
+        Matrix4x4 saved = GUI.matrix;
+        float textW = Mathf.Max(1f, style.CalcSize(new GUIContent(s)).x);
+        float full = Screen.width / textW;                               // tyle trzeba, żeby wypełnić ekran
+        float sx = Random.value < 0.45f ? Mathf.Max(1.6f, full * Random.Range(0.9f, 1.3f)) : Random.Range(1.1f, 2.2f);
+        sx = Mathf.Lerp(1f, sx, strength);
+        float sy = Mathf.Lerp(1f, Random.Range(0.55f, 1.15f), strength);
+        GUIUtility.ScaleAroundPivot(new Vector2(sx, sy), r.center);
+        float dx = Random.Range(4f, 14f) * styleK * strength;
+        float jx = Random.Range(-20f, 20f) * styleK * strength;
+        Rect j = new Rect(r.x + jx / sx, r.y + Random.Range(-6f, 6f) * styleK, r.width, r.height);
+        GUI.color = new Color(1f, 0.1f, 0.1f, c.a * 0.7f);
+        GUI.Label(new Rect(j.x + dx / sx, j.y, j.width, j.height), s, style);
+        GUI.color = new Color(0.1f, 0.9f, 1f, c.a * 0.7f);
+        GUI.Label(new Rect(j.x - dx / sx, j.y, j.width, j.height), s, style);
+        Text(j, s, style, c);
+        GUI.matrix = saved;
     }
 
     // =====================================================================
@@ -649,9 +691,9 @@ public class TrailerDirector : MonoBehaviour
 
         if (!string.IsNullOrEmpty(card) && cardAlpha > 0.001f)
         {
-            Text(new Rect(sw * 0.1f, sh * 0.42f, sw * 0.8f, 90 * k), card, cardStyle, new Color(0.92f, 0.92f, 0.88f, cardAlpha));
+            GlitchText(new Rect(sw * 0.1f, sh * 0.42f, sw * 0.8f, 90 * k), card, cardStyle, new Color(0.92f, 0.92f, 0.88f, cardAlpha));
             if (!string.IsNullOrEmpty(cardSmall))
-                Text(new Rect(sw * 0.1f, sh * 0.52f, sw * 0.8f, 50 * k), cardSmall, smallStyle, new Color(0.7f, 0.7f, 0.7f, cardAlpha));
+                GlitchText(new Rect(sw * 0.1f, sh * 0.52f, sw * 0.8f, 50 * k), cardSmall, smallStyle, new Color(0.7f, 0.7f, 0.7f, cardAlpha), 0.5f);
         }
 
         if (titleT >= 0f)
@@ -662,13 +704,17 @@ public class TrailerDirector : MonoBehaviour
             float a = on * Mathf.Clamp01((T - titleT) / 0.8f);
             float jitter = titleT < 1.2f ? Random.Range(-3f, 3f) * k : 0f;
             Rect tr = new Rect(jitter, sh * 0.36f, sw, 140 * k);
-            GUI.color = new Color(0.8f, 0.05f, 0.05f, a * 0.55f);
-            GUI.Label(new Rect(tr.x + 5 * k, tr.y, tr.width, tr.height), "THE BACKROOMS", titleStyle);
-            Text(tr, "THE BACKROOMS", titleStyle, new Color(0.95f, 0.93f, 0.85f, a));
+            if (Time.time >= glitchUntil)
+            {
+                GUI.color = new Color(0.8f, 0.05f, 0.05f, a * 0.55f);
+                GUI.Label(new Rect(tr.x + 5 * k, tr.y, tr.width, tr.height), "THE BACKROOMS", titleStyle);
+                GUI.color = Color.white;
+            }
+            GlitchText(tr, "THE BACKROOMS", titleStyle, new Color(0.95f, 0.93f, 0.85f, a));
             float subA = a * Mathf.Clamp01((titleT - 0.9f) / 0.6f);
-            Text(new Rect(0, sh * 0.5f, sw, 60 * k), Spaced("ISOLATION"), subStyle, new Color(0.85f, 0.8f, 0.55f, subA));
+            GlitchText(new Rect(0, sh * 0.5f, sw, 60 * k), Spaced("ISOLATION"), subStyle, new Color(0.85f, 0.8f, 0.55f, subA), 0.7f);
             float tagA = a * Mathf.Clamp01((titleT - 1.8f) / 0.6f);
-            Text(new Rect(0, sh * 0.62f, sw, 40 * k), Loc.T("BRAK ZASIĘGU. BRAK WYJŚCIA.", "NO SIGNAL. NO WAY OUT."), smallStyle, new Color(0.75f, 0.12f, 0.1f, tagA));
+            GlitchText(new Rect(0, sh * 0.62f, sw, 40 * k), Loc.T("BRAK ZASIĘGU. BRAK WYJŚCIA.", "NO SIGNAL. NO WAY OUT."), smallStyle, new Color(0.75f, 0.12f, 0.1f, tagA), 0.5f);
             Text(new Rect(0, sh * 0.86f, sw, 40 * k), "Młode Byczki", smallStyle, new Color(0.6f, 0.6f, 0.6f, tagA));
         }
     }
