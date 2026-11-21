@@ -2056,6 +2056,7 @@ public static class LevelBuilder
         spill.renderMode = LightRenderMode.ForcePixel;
         SetupShadowedLight(spill, 0, 1);
         var fl = flGo.AddComponent<Flashlight>();
+        flGo.AddComponent<FlashlightBounce>(); // pozorne odbicie snopu (latarki nie ma w wypalonym GI)
         fl.lensRenderer = lens.GetComponent<Renderer>();
         fl.spill = spill;
         var beam = MakeShaft(flGo.transform, 0.03f, 3.2f, 7.5f, new Color(1f, 0.95f, 0.85f), 0.05f, "Flashlight", false);
@@ -3794,7 +3795,7 @@ public static class LevelBuilder
         void F(string n, float v) { if (m.HasProperty(n)) m.SetFloat(n, v); }
         F("_Enable_Shadow_Colour", 0f);
         if (m.HasProperty("_Colour")) m.SetColor("_Colour", new Color(0.92f, 0.9f, 0.86f, 1f));
-        F("_Density", 0.25f);
+        F("_Density", 0.12f); // 0.25 zalewało obraz poświatą przy włączonej latarce (rozproszenie 115° przy kamerze)
         F("_Max_Distance", 25f);
         F("_Steps", 16f);
         F("_Height_Mask_Blend", 0.45f);

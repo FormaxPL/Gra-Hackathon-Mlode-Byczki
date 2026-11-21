@@ -73,7 +73,8 @@ public class AeroSetupTests
         if (sh == null) Assert.Ignore("AERO nie jest zaimportowany");
         var m = new Material(sh);
         LevelBuilder.TuneAeroMaterial(m);
-        Assert.AreEqual(0.25f, m.GetFloat("_Density"), 1e-4f);
+        // 0.25 zalewało obraz poświatą, gdy gracz świeci latarką (rozproszenie 115° tuż przed kamerą)
+        Assert.AreEqual(0.12f, m.GetFloat("_Density"), 1e-4f);
         Assert.AreEqual(0f, m.GetFloat("_Enable_Shadow_Colour"), 1e-4f);
         Assert.AreEqual(25f, m.GetFloat("_Max_Distance"), 1e-4f);
         Assert.AreEqual(0.15f, m.GetFloat("_Ambient_Light_Scale"), 1e-4f);
