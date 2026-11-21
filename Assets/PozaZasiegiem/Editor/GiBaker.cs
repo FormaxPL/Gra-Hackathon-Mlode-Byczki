@@ -174,6 +174,8 @@ public static class GiBaker
                 if (l.lightmapBakeType == LightmapBakeType.Mixed) savedLights.Add((l.gameObject, l.gameObject.activeSelf));
         IsBaking = true;
         LastReport = "";
+        // przeładowanie skryptów w trakcie zgubiłoby stan wypalania i zostawiło lampy „Awarii” wyłączone w scenie
+        EditorApplication.LockReloadAssemblies();
         t0 = EditorApplication.timeSinceStartup;
         BeginStep(Step.Power);
         EditorApplication.update += Tick;
@@ -240,7 +242,11 @@ public static class GiBaker
 
     static void Finish(string msg, bool wasRunning)
     {
-        if (wasRunning) EditorApplication.update -= Tick;
+        if (wasRunning)
+        {
+            EditorApplication.update -= Tick;
+            EditorApplication.UnlockReloadAssemblies();
+        }
         EditorUtility.ClearProgressBar();
         IsBaking = false;
         LastReport = msg;
