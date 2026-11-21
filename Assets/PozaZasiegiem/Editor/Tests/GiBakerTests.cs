@@ -60,6 +60,52 @@ public class GiBakerTests
         Assert.IsFalse(GiBaker.ShouldBake(g.GetComponent<Light>()));
     }
 
+    // ---------- które obiekty biorą udział w GI (statyczne, nieprzezroczyste, nieruchome) ----------
+
+    Renderer Mesh(Shader shader, int queue = -1)
+    {
+        var g = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        made.Add(g);
+        var m = new Material(shader);
+        if (queue >= 0) m.renderQueue = queue;
+        var r = g.GetComponent<Renderer>();
+        r.sharedMaterial = m;
+        return r;
+    }
+
+    [Test] public void OpaqueStaticMesh_ContributesGI() => Assert.IsTrue(GiBaker.ContributesGI(Mesh(Shader.Find("Universal Render Pipeline/Lit"))));
+    [Test] public void TransparentMesh_DoesNotContributeGI() => Assert.IsFalse(GiBaker.ContributesGI(Mesh(Shader.Find("Universal Render Pipeline/Lit"), 3000)));
+
+    [Test]
+    public void Particles_DoNotContributeGI()
+    {
+        var g = new GameObject("P", typeof(ParticleSystem)); made.Add(g);
+        Assert.IsFalse(GiBaker.ContributesGI(g.GetComponent<ParticleSystemRenderer>()));
+    }
+
+    [Test]
+    public void SkinnedMesh_DoesNotContributeGI()
+    {
+        var g = new GameObject("P", typeof(SkinnedMeshRenderer)); made.Add(g);
+        Assert.IsFalse(GiBaker.ContributesGI(g.GetComponent<SkinnedMeshRenderer>()));
+    }
+
+    [Test]
+    public void MeshUnderIdleSway_DoesNotContributeGI()
+    {
+        var r = Mesh(Shader.Find("Universal Render Pipeline/Lit"));
+        r.transform.SetParent(Parent(typeof(IdleSway)).transform);
+        Assert.IsFalse(GiBaker.ContributesGI(r));
+    }
+
+    [Test]
+    public void MeshUnderPickup_DoesNotContributeGI()
+    {
+        var r = Mesh(Shader.Find("Universal Render Pipeline/Lit"));
+        r.transform.SetParent(Parent(typeof(Pickup)).transform);
+        Assert.IsFalse(GiBaker.ContributesGI(r));
+    }
+
     [Test]
     public void UnderHangingSway_IsNotBaked()
     {

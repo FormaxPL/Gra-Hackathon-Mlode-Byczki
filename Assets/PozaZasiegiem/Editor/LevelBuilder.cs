@@ -245,11 +245,13 @@ public static class LevelBuilder
             MarkStatic(detailT, false);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
+            // GI: po zapisie (zestaw wypalania potrzebuje identyfikatora sceny), po MarkStatic (dokłada flagę ContributeGI)
+            string giRep = urp ? GiBaker.PrepareScene(scene) : "GI: pominięte (projekt bez URP).";
             EditorUtility.DisplayProgressBar("Poza Zasięgiem", "Occlusion Culling (rysuj tylko to, co widać)...", 0.95f);
             string occ = BakeOcclusion();
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddSceneToBuild();
-            report = gfx + "\n" + aeroRep + "\n" + pp + "\n" + validation + "\n" + entityReport + "\n" + occ;
+            report = gfx + "\n" + aeroRep + "\n" + pp + "\n" + validation + "\n" + entityReport + "\n" + occ + "\n" + giRep;
         }
         finally
         {
