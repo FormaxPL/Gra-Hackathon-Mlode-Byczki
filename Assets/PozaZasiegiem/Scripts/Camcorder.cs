@@ -92,6 +92,8 @@ public class Camcorder : MonoBehaviour
             }
         }
         if (irLight != null) irLight.enabled = nvActive;
+        // reflektor IR tuż przy kamerze rozświetlałby mgłę AERO na biały krąg – noktowizja widzi bez mgły
+        AeroFog.SetSuppressed(nvActive);
 
         // noktowizja = latarka gaśnie sama (nie zdradza cię), po wyłączeniu NV wraca
         var fl = pc != null ? pc.Flashlight : null;
@@ -136,6 +138,7 @@ public class Camcorder : MonoBehaviour
         Raise01 = 0f;
         zoom = 0f;
         if (irLight != null) irLight.enabled = false;
+        AeroFog.SetSuppressed(false);
         VolumeUtil.SetWeight(camVolume, 0f);
         VolumeUtil.SetWeight(nvVolume, 0f);
     }

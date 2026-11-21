@@ -78,12 +78,27 @@ public class AeroFog : MonoBehaviour
         return -1;
     }
 
+    /// <summary>Mgła wyłączona chwilowo (noktowizja: reflektor IR przy kamerze rozświetlał mgłę na biały krąg).</summary>
+    public static bool Suppressed { get; private set; }
+    static bool requested = true;
+
+    public static bool EffectiveOn(bool requestedOn, bool suppressed) => requestedOn && !suppressed;
+
+    /// <summary>Chwilowe wyłączenie mgły niezależnie od ustawień (po zdjęciu wraca stan z ustawień).</summary>
+    public static void SetSuppressed(bool suppressed)
+    {
+        if (Suppressed == suppressed) return;
+        Suppressed = suppressed;
+        Apply(requested);
+    }
+
     /// <summary>Włącza/wyłącza mgłę AERO na kamerze (domyślnie na głównej).</summary>
     public static void Apply(bool on, Camera cam = null)
     {
+        requested = on;
         if (cam == null) cam = Camera.main;
         if (cam == null) return;
-        int idx = on && Available ? FindRendererIndex() : -1;
+        int idx = EffectiveOn(on, Suppressed) && Available ? FindRendererIndex() : -1;
         foreach (var c in cam.GetComponents<Component>())
         {
             if (c == null || c.GetType().Name != "UniversalAdditionalCameraData") continue;

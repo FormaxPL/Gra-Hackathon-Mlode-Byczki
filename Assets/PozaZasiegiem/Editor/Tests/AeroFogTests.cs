@@ -6,6 +6,11 @@ using UnityEngine.Rendering.Universal;
 /// (projekt bez zaimportowanego AERO nie może dostać czarnego ekranu).</summary>
 public class AeroFogTests
 {
+    // noktowizja: reflektor IR tuż przy kamerze rozświetlał mgłę AERO na biały krąg na cały ekran
+    [Test] public void Fog_IsOff_WhenSuppressedByNightVision() => Assert.IsFalse(AeroFog.EffectiveOn(true, true));
+    [Test] public void Fog_IsOn_WhenRequestedAndNotSuppressed() => Assert.IsTrue(AeroFog.EffectiveOn(true, false));
+    [Test] public void Fog_StaysOff_WhenNotRequested() => Assert.IsFalse(AeroFog.EffectiveOn(false, false));
+
     [Test]
     public void NullMaterial_IsNotUsable() => Assert.IsFalse(AeroFog.IsMaterialUsable(null));
 
