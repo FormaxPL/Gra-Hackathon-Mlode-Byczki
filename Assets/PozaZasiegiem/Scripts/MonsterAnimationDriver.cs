@@ -50,7 +50,8 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
 
     [Header("Attack (jumpscare)")]
     [SerializeField] private float attackLean = 24f;
-    [SerializeField] private float attackArmRaise = 95f;
+    [Tooltip("Uniesienie rąk przy ataku. Powyżej ~60° wagi skinningu entity.fbx odrywają tułów od nóg.")]
+    [SerializeField] private float attackArmRaise = 55f;
 
     [Header("Horn response when the monster spots the player")]
     [SerializeField] private Vector3 hornAlertEuler = new Vector3(-8f, 0f, 18f);
@@ -62,12 +63,22 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
     private Vector3[] legAxis, shinAxis, armAxis;
     private float[] legPhase, armPhase;
     private Vector3 bodyLeanAxis, headNodAxis, headYawAxis;
-    private Vector3 bodyPositionRest;
     private Vector3 rootPositionRest;
     private MotionMode mode;
     private float phase, pipeTime, alert, alertTarget, moveBlend;
 
+    // v6: miednica = tułów + kości, z których wychodzą nogi (w entity.fbx nogi NIE są dziećmi tułowia),
+    // więc podskok/kucanie przesuwa je razem i tułów nie odrywa się od nóg.
+    private Transform[] pelvis = new Transform[0];
+    private Vector3[] pelvisRest = new Vector3[0];
+    private float thighLen = 0.35f, shinLen = 0.3f;
+    private float speedInput = -1f;              // m/s z AI (SetSpeed); < 0 = stałe tempo trybu
+    private float ampS, armAmpS, leanS, crouchS, attackS;
+
     public MotionMode Mode => mode;
+
+    /// <summary>Prędkość potwora w m/s – tempo kroku dopasowuje się do niej (stopy nie ślizgają się).</summary>
+    public void SetSpeed(float metersPerSecond) { speedInput = Mathf.Max(0f, metersPerSecond); }
 
     /// <summary>Podpięcie kości z kodu (generator poziomu). Wywołaj w edytorze albo przed Awake.</summary>
     public void Configure(Transform bodyBone, Transform headBone, Transform[] legBones, Transform[] shinBones, Transform[] armBones, Transform[] hornBones)
@@ -89,13 +100,14 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
 
     private void CacheRestPose()
     {
-        if (body != null) { bodyRest = body.localRotation; bodyPositionRest = body.localPosition; }
+        if (body != null) bodyRest = body.localRotation;
         if (head != null) headRest = head.localRotation;
         rootPositionRest = transform.localPosition;
         legRest = Cache(legs);
         shinRest = Cache(shins);
         armRest = Cache(arms);
         hornRest = Cache(horns);
+        CachePelvisAndLegLengths();
 
         Vector3 fwd = transform.forward, right = transform.right, up = transform.up;
         legAxis = SwingAxes(legs, legSwingAxis, fwd);
@@ -114,6 +126,56 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
         var result = new Quaternion[bones.Length];
         for (int i = 0; i < bones.Length; i++) result[i] = bones[i] != null ? bones[i].localRotation : Quaternion.identity;
         return result;
+    }
+
+    private void CachePelvisAndLegLengths()
+    {
+        var list = new System.Collections.Generic.List<Transform>();
+        if (body != null) list.Add(body);
+        if (legs != null)
+            foreach (var l in legs)
+            {
+                if (l == null || l.parent == null || l.parent == transform) continue;
+                var p = l.parent;
+                bool underPelvis = false;
+                foreach (var q in list) if (p == q || p.IsChildOf(q)) underPelvis = true;
+                if (!underPelvis) list.Add(p);
+            }
+        pelvis = list.ToArray();
+        pelvisRest = new Vector3[pelvis.Length];
+        for (int i = 0; i < pelvis.Length; i++) pelvisRest[i] = pelvis[i].localPosition;
+
+        // długości udo/łydka w metrach świata (do dopasowania tempa kroku i kucania)
+        float t = 0f, s = 0f; int n = 0;
+        for (int i = 0; legs != null && i < legs.Length; i++)
+        {
+            if (legs[i] == null || shins == null || i >= shins.Length || shins[i] == null) continue;
+            t += Vector3.Distance(legs[i].position, shins[i].position);
+            s += shins[i].childCount > 0 ? Vector3.Distance(shins[i].position, shins[i].GetChild(0).position) : 0.8f * t / (n + 1);
+            n++;
+        }
+        if (n > 0 && t > 1e-3f && s > 1e-3f) { thighLen = t / n; shinLen = s / n; }
+    }
+
+    /// <summary>Kucanie bez wbijania stóp w podłogę: kąt uda do przodu i łydki do tyłu,
+    /// przy których biodro opada o <paramref name="drop"/>, a stopa zostaje pod biodrem.</summary>
+    private void CrouchAngles(float drop, out float thighFwd, out float kneeBend)
+    {
+        thighFwd = 0f; kneeBend = 0f;
+        if (drop <= 1e-4f) return;
+        float target = thighLen + shinLen - drop;
+        float lo = 0f, hi = Mathf.PI * 0.45f;
+        for (int it = 0; it < 18; it++)
+        {
+            float a = (lo + hi) * 0.5f;
+            float sb = Mathf.Clamp(thighLen / shinLen * Mathf.Sin(a), -1f, 1f);
+            float h = thighLen * Mathf.Cos(a) + shinLen * Mathf.Sqrt(1f - sb * sb);
+            if (h > target) lo = a; else hi = a;
+        }
+        float aa = (lo + hi) * 0.5f;
+        float b = Mathf.Asin(Mathf.Clamp(thighLen / shinLen * Mathf.Sin(aa), -1f, 1f));
+        thighFwd = aa * Mathf.Rad2Deg;
+        kneeBend = (aa + b) * Mathf.Rad2Deg;
     }
 
     /// <summary>Kierunek kości w świecie (do pierwszego dziecka albo lokalne Y).</summary>
@@ -184,12 +246,26 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
         bool attack = mode == MotionMode.Attack;
-        float speed = mode == MotionMode.Sprint || attack ? 2.8f : mode == MotionMode.Jog ? 2.15f : mode == MotionMode.Walk ? 1.35f : 0f;
+        float cadence = mode == MotionMode.Sprint || attack ? 2.8f : mode == MotionMode.Jog ? 2.15f : mode == MotionMode.Walk ? 1.35f : 0f;
         float amplitude = mode == MotionMode.Sprint ? sprintAmplitude : mode == MotionMode.Jog ? jogAmplitude : walkAmplitude;
         bool moving = mode == MotionMode.Walk || mode == MotionMode.Jog || mode == MotionMode.Sprint;
+        // Tempo kroku z prędkości: w podporze stopa przesuwa się o 2·L·sin(A) w pół cyklu,
+        // więc v = 4·L·sin(A)·f  →  f = v / (4·L·sin(A)). Dzięki temu stopy nie ślizgają się po podłodze.
+        if (moving && speedInput >= 0f)
+        {
+            float stride = 4f * (thighLen + shinLen) * Mathf.Sin(amplitude * Mathf.Deg2Rad);
+            cadence = Mathf.Clamp(speedInput / Mathf.Max(0.05f, stride), 0.6f, 3.4f);
+        }
         moveBlend = Mathf.MoveTowards(moveBlend, moving ? 1f : 0f, dt * 4f);
-        phase += dt * speed * Mathf.PI * 2f;
+        phase += dt * cadence * Mathf.PI * 2f;
+        if (phase > 1000f) phase -= Mathf.PI * 2f * 100f;
         alert = Mathf.MoveTowards(alert, attack ? 1f : alertTarget, alertBlendSpeed * dt);
+        // Płynne przejścia między trybami wygładzają SKALARY (amplitudę, pochylenie, kucanie),
+        // a nie gotowe obroty – wygładzanie obrotów spóźniało i tłumiło ruch cykliczny nóg i rąk.
+        float k = 1f - Mathf.Exp(-blendSpeed * dt);
+        ampS = Mathf.Lerp(ampS, amplitude * moveBlend, k);
+        armAmpS = Mathf.Lerp(armAmpS, amplitude * moveBlend * (mode == MotionMode.Sprint ? 0.85f : 0.55f), k);
+        attackS = Mathf.MoveTowards(attackS, attack ? 1f : 0f, dt * (attack ? 6f : 3f));
 
         float crouch = mode == MotionMode.LockerWait ? lockerCrouch : 0f;
         float lean = mode == MotionMode.LockerWait ? lockerLeanEuler.x : attack ? attackLean : 0f;
@@ -209,20 +285,31 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
             }
         }
 
+        leanS = Mathf.Lerp(leanS, lean, k);
+        crouchS = mode == MotionMode.PipeEnter ? crouch : Mathf.MoveTowards(crouchS, crouch, dt * 0.9f);
+
+        // Biodro opada, gdy nogi są rozkroczone (noga podporowa zostaje na podłodze); w sprincie lekki wyskok.
+        float legSpan = thighLen + shinLen;
+        float stanceDrop = legSpan * (1f - Mathf.Cos(ampS * Mathf.Abs(Mathf.Sin(phase)) * Mathf.Deg2Rad));
+        float hop = mode == MotionMode.Sprint ? Mathf.Abs(Mathf.Cos(phase)) * sprintBob * moveBlend : 0f;
+        Vector3 worldOffset = transform.up * (hop - stanceDrop - crouchS);
+        for (int i = 0; i < pelvis.Length; i++)
+        {
+            if (pelvis[i] == null) continue;
+            var par = pelvis[i].parent;
+            pelvis[i].localPosition = pelvisRest[i] + (par != null ? par.InverseTransformVector(worldOffset) : worldOffset);
+        }
+
         if (body != null)
         {
             float breathing = Mathf.Sin(Time.time * 1.6f) * (moving ? 0.6f : 1.4f);
-            float bob = Mathf.Abs(Mathf.Sin(phase)) * (mode == MotionMode.Sprint ? sprintBob : 0.03f) * moveBlend;
             float sway = Mathf.Sin(phase) * 4f * moveBlend;
-            Quaternion pose = Quaternion.AngleAxis(lean + breathing, bodyLeanAxis) * Quaternion.AngleAxis(sway, Quaternion.Inverse(body.rotation) * transform.up);
-            body.localRotation = Quaternion.Slerp(body.localRotation, bodyRest * pose, blendSpeed * dt);
-            Vector3 worldOffset = transform.up * (bob - crouch);
-            Vector3 localOffset = body.parent != null ? body.parent.InverseTransformVector(worldOffset) : worldOffset;
-            body.localPosition = Vector3.Lerp(body.localPosition, bodyPositionRest + localOffset, blendSpeed * dt);
+            Quaternion pose = Quaternion.AngleAxis(leanS + breathing, bodyLeanAxis) * Quaternion.AngleAxis(sway, Quaternion.Inverse(body.rotation) * transform.up);
+            body.localRotation = bodyRest * pose;
         }
 
-        AnimateLegs(amplitude * moveBlend, dt);
-        AnimateArms(amplitude * moveBlend * (mode == MotionMode.Sprint ? 0.85f : 0.55f), attack, dt);
+        AnimateLegs(ampS, crouchS);
+        AnimateArms(armAmpS);
 
         if (head != null)
         {
@@ -235,34 +322,36 @@ public sealed class MonsterAnimationDriver : MonoBehaviour
         AnimateHorns(dt);
     }
 
-    private void AnimateLegs(float amplitude, float dt)
+    private void AnimateLegs(float amplitude, float crouchDrop)
     {
         if (legs == null || legRest == null) return;
+        CrouchAngles(crouchDrop, out float crouchThigh, out float crouchKnee);
         for (int i = 0; i < legs.Length; i++)
         {
             if (legs[i] == null) continue;
-            float s = Mathf.Sin(phase + legPhase[i]);
-            float swing = s * amplitude;
-            legs[i].localRotation = Quaternion.Slerp(legs[i].localRotation, legRest[i] * Quaternion.AngleAxis(swing, legAxis[i]), blendSpeed * dt);
+            float p = phase + legPhase[i];
+            float swing = Mathf.Sin(p) * amplitude + crouchThigh;
+            legs[i].localRotation = legRest[i] * Quaternion.AngleAxis(swing, legAxis[i]);
             if (shins != null && i < shins.Length && shins[i] != null)
             {
-                // kolano zgina się, gdy noga idzie do tyłu i przy przenoszeniu
-                float bend = Mathf.Max(0f, -Mathf.Cos(phase + legPhase[i])) * kneeBend * (amplitude / Mathf.Max(1f, walkAmplitude));
-                shins[i].localRotation = Quaternion.Slerp(shins[i].localRotation, shinRest[i] * Quaternion.AngleAxis(-bend, shinAxis[i]), blendSpeed * dt);
+                // Kolano zgina się w fazie PRZENOSZENIA (udo idzie do przodu: cos > 0, najmocniej pod biodrem),
+                // a w podporze noga jest prosta – wcześniej było odwrotnie i stopa sunęła po podłodze.
+                float bend = Mathf.Max(0f, Mathf.Cos(p)) * kneeBend * (amplitude / Mathf.Max(1f, walkAmplitude)) + crouchKnee;
+                shins[i].localRotation = shinRest[i] * Quaternion.AngleAxis(-bend, shinAxis[i]);
             }
         }
     }
 
-    private void AnimateArms(float amplitude, bool attack, float dt)
+    private void AnimateArms(float amplitude)
     {
         if (arms == null || armRest == null) return;
         for (int i = 0; i < arms.Length; i++)
         {
             if (arms[i] == null) continue;
-            float swing = attack
-                ? attackArmRaise + Mathf.Sin(Time.time * 20f + i) * 6f
-                : Mathf.Sin(phase + armPhase[i]) * amplitude;
-            arms[i].localRotation = Quaternion.Slerp(arms[i].localRotation, armRest[i] * Quaternion.AngleAxis(swing, armAxis[i]), blendSpeed * dt * (attack ? 2f : 1f));
+            float walkSwing = Mathf.Sin(phase + armPhase[i]) * amplitude;
+            float attackSwing = attackArmRaise + Mathf.Sin(Time.time * 20f + i) * 6f;
+            float swing = Mathf.Lerp(walkSwing, attackSwing, Mathf.SmoothStep(0f, 1f, attackS));
+            arms[i].localRotation = armRest[i] * Quaternion.AngleAxis(swing, armAxis[i]);
         }
     }
 

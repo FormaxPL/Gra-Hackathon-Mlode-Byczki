@@ -24,6 +24,7 @@ public class StalkerModelBridge : MonoBehaviour
         Vector3 v = ai.Velocity;
         v.y = 0f;
         float spd = v.magnitude;
+        driver.SetSpeed(spd);
 
         if (st == StalkerAI.State.EnterPipe && last != StalkerAI.State.EnterPipe) driver.EnterPipe();
         last = st;
