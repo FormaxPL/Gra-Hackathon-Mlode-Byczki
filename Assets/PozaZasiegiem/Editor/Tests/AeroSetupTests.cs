@@ -78,6 +78,11 @@ public class AeroSetupTests
         Assert.AreEqual(0f, m.GetFloat("_Enable_Shadow_Colour"), 1e-4f);
         Assert.AreEqual(25f, m.GetFloat("_Max_Distance"), 1e-4f);
         Assert.AreEqual(0.15f, m.GetFloat("_Ambient_Light_Scale"), 1e-4f);
+        // wydajność (pomiar 1080p przy automatach: 45 ms → ~9 ms na klatkę)
+        Assert.AreEqual(10f, m.GetFloat("_Steps"), 1e-4f);
+        Assert.AreEqual(0f, m.GetFloat("_Enable_Additional_Light_Self_Shadow"), 1e-4f);
+        Assert.AreEqual(0f, m.GetFloat("_ENABLE_ADDITIONAL_LIGHT_SHADOWS"), 1e-4f);
+        Assert.IsFalse(m.IsKeywordEnabled("_ENABLE_ADDITIONAL_LIGHT_SHADOWS"));
         Object.DestroyImmediate(m);
     }
 }

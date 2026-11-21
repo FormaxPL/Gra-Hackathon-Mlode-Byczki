@@ -3796,10 +3796,16 @@ public static class LevelBuilder
         if (m.HasProperty("_Colour")) m.SetColor("_Colour", new Color(0.92f, 0.9f, 0.86f, 1f));
         F("_Density", 0.12f); // 0.25 zalewało obraz poświatą przy włączonej latarce (rozproszenie 115° przy kamerze)
         F("_Max_Distance", 25f);
-        F("_Steps", 16f);
         F("_Height_Mask_Blend", 0.45f);
-        F("_Additional_Light_Self_Shadow_Steps", 4f);
         F("_Ambient_Light_Scale", 0.15f);
+        // Wydajność (pomiar 1080p, 2026-11-21): przy automatach z napojami mgła kosztowała 45 ms/klatkę.
+        // 10 kroków, bez samocienia i bez cieni świateł w mgle (+ limit świateł w FogLightingFeature) → ~9 ms,
+        // a stożki lamp wyglądają prawie tak samo (gładsze, mniej szumu).
+        F("_Steps", 10f);
+        F("_Enable_Additional_Light_Self_Shadow", 0f);
+        F("_Enable_Main_Light_Self_Shadow", 0f);
+        F("_ENABLE_ADDITIONAL_LIGHT_SHADOWS", 0f);
+        m.DisableKeyword("_ENABLE_ADDITIONAL_LIGHT_SHADOWS");
     }
 
     /// <summary>Ocena renderera z mgłą: AERO, z feature'em oświetlenia mgły, wersja PC przed mobilną.</summary>

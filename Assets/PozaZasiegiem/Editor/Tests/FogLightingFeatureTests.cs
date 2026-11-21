@@ -51,6 +51,12 @@ public class FogLightingFeatureTests
         Assert.IsTrue(typeof(ScriptableRendererFeature).IsAssignableFrom(typeof(FogLightingFeature)));
     }
 
+    // Shader AERO liczy w każdym kroku mgły WSZYSTKIE światła do _AdditionalLightCount (pętla klastrowa jest
+    // w nim wyłączona) – przy automatach (~90 świateł) mgła kosztowała 45 ms na klatkę w 1080p.
+    [Test] public void FogLightCount_IsCapped() => Assert.AreEqual(12, FogLightingFeature.FogLightCount(93, 12));
+    [Test] public void FogLightCount_BelowCap_IsUnchanged() => Assert.AreEqual(5, FogLightingFeature.FogLightCount(5, 12));
+    [Test] public void FogLightCount_NoCap_WhenMaxIsZero() => Assert.AreEqual(93, FogLightingFeature.FogLightCount(93, 0));
+
     [Test]
     public void AeroLightingFeature_IsReplacedByOurs()
     {
