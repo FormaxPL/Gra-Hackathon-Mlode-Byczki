@@ -3741,7 +3741,7 @@ public static class LevelBuilder
                 }
                 if (tn.ToLowerInvariant().Contains("lighting")) lighting = true;
             }
-            if (fm == null) continue;
+            if (fm == null || !AeroFog.IsMaterialUsable(fm)) continue;
             int score = 3 + (lighting ? 2 : 0) + (path.ToLowerInvariant().Contains("aero") ? 2 : 0);
             if (score > bestScore) { bestScore = score; best = rd; bestMat = fm; }
         }

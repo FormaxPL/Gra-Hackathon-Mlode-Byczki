@@ -27,21 +27,54 @@ public class AeroFog : MonoBehaviour
         SetDensity(1f);
     }
 
-    public static bool Available => Instance != null && FindRendererIndex() >= 0;
+    /// <summary>Mgła AERO jest dostępna tylko wtedy, gdy materiał ma działający shader, a renderer z mgłą
+    /// nie ma brakujących feature'ów. Bez zaimportowanego AERO (assetu nie ma w repozytorium) zostaje zwykły renderer.</summary>
+    public static bool Available
+    {
+        get
+        {
+            if (Instance == null || !IsMaterialUsable(Instance.fogMaterial)) return false;
+            var list = RendererList();
+            int idx = FindRendererIndex();
+            return list != null && idx >= 0 && !HasMissingFeatures(list[idx]);
+        }
+    }
 
-    public static int FindRendererIndex()
+    /// <summary>Materiał nadaje się do renderowania: shader istnieje, jest wspierany i nie jest shaderem błędu.</summary>
+    public static bool IsMaterialUsable(Material m)
+    {
+        return m != null && m.shader != null && m.shader.isSupported && m.shader.name != "Hidden/InternalErrorShader";
+    }
+
+    /// <summary>Renderer URP ma na liście feature'ów pusty wpis (np. skrypt AERO, którego nie ma w projekcie).</summary>
+    public static bool HasMissingFeatures(Object rendererData)
+    {
+        if (rendererData == null) return true;
+        var p = rendererData.GetType().GetProperty("rendererFeatures", BindingFlags.Public | BindingFlags.Instance);
+        if (p == null || !(p.GetValue(rendererData) is System.Collections.IList l)) return false;
+        foreach (var o in l)
+            if (!(o is Object uo) || uo == null) return true;
+        return false;
+    }
+
+    static Object[] RendererList()
     {
         var rp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
-        if (rp == null) return -1;
+        if (rp == null) return null;
         for (var t = rp.GetType(); t != null; t = t.BaseType)
         {
             var f = t.GetField("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (f == null) continue;
-            if (f.GetValue(rp) is Object[] list)
-                for (int i = 0; i < list.Length; i++)
-                    if (list[i] != null && list[i].name.StartsWith(RendererName)) return i;
-            break;
+            if (f != null) return f.GetValue(rp) as Object[];
         }
+        return null;
+    }
+
+    public static int FindRendererIndex()
+    {
+        var list = RendererList();
+        if (list == null) return -1;
+        for (int i = 0; i < list.Length; i++)
+            if (list[i] != null && list[i].name.StartsWith(RendererName)) return i;
         return -1;
     }
 
@@ -50,7 +83,7 @@ public class AeroFog : MonoBehaviour
     {
         if (cam == null) cam = Camera.main;
         if (cam == null) return;
-        int idx = on && Instance != null ? FindRendererIndex() : -1;
+        int idx = on && Available ? FindRendererIndex() : -1;
         foreach (var c in cam.GetComponents<Component>())
         {
             if (c == null || c.GetType().Name != "UniversalAdditionalCameraData") continue;
