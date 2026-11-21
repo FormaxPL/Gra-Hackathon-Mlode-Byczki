@@ -82,6 +82,12 @@ Scena `TestLevel` powstaje z kodu. Żeby ją zbudować ponownie, wybierz w górn
 - **Poza Zasiegiem → Zbuduj scene testowa (staly uklad)**: zawsze ta sama mapa
 - **Poza Zasiegiem → Zbuduj scene testowa (losowy uklad)**: nowa, losowa mapa
 
+Po przebudowie mapy wypal oświetlenie globalne (odbite światło od ścian i podłóg):
+
+- **Poza Zasiegiem → Wypal oswietlenie (GI)**: wypala dwa warianty, z prądem i w czasie awarii. Trwa około 1–3 minut. Bez tego gra działa normalnie, tylko bez odbitego światła.
+
+Nie zmieniaj skryptów w trakcie wypalania, bo przekompilowanie je przerwie.
+
 > **Uwaga:** generator nadpisuje `TestLevel.unity`. Ręczne zmiany w tej scenie przepadną, więc jeśli coś w niej układacie, najpierw zróbcie kopię sceny.
 
 Szczegóły mechanik, strojenie potwora i rozwiązywanie problemów z grafiką są w [Assets/PozaZasiegiem/README.md](Assets/PozaZasiegiem/README.md).
