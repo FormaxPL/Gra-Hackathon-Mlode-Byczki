@@ -105,8 +105,8 @@ public static class GiBaker
         foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { "Assets/PozaZasiegiem/Generated" }))
         {
             var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
-            if (m == null || m.globalIlluminationFlags == MaterialGlobalIlluminationFlags.EmissiveIsBlack) continue;
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            if (m == null) continue;
+            ExcludeEmissionFromBake(m);
             EditorUtility.SetDirty(m);
         }
 
@@ -133,6 +133,18 @@ public static class GiBaker
 
         return $"GI: scena przygotowana ({mixed} świateł Mixed, {realtime} Realtime, {gi} obiektów w GI). " +
                "Uruchom Poza Zasiegiem → Wypal oswietlenie (GI).";
+    }
+
+    /// <summary>Materiał świecący nie wysyła światła do wypalania, ale NADAL świeci: flaga RealtimeEmissive
+    /// (dotyczy tylko GI liczonego na żywo, które jest wyłączone), bez BakedEmissive.
+    /// Uwaga: przy EmissiveIsBlack i przy None postprocesor URP przy kolejnym odświeżeniu assetów wyłącza _EMISSION –
+    /// gasły kartki notatek, ekrany, znaki i żarówki. Tu też naprawiamy tak zepsute materiały.</summary>
+    public static void ExcludeEmissionFromBake(Material m)
+    {
+        if (m == null) return;
+        bool emissive = m.HasProperty("_EmissionColor") && m.GetColor("_EmissionColor").maxColorComponent > 0.001f;
+        m.globalIlluminationFlags = emissive ? MaterialGlobalIlluminationFlags.RealtimeEmissive : MaterialGlobalIlluminationFlags.None;
+        if (emissive) m.EnableKeyword("_EMISSION");
     }
 
     /// <summary>W scenariuszu „Awaria” gaśnie wypalane (Mixed) światło zasilane z sieci, chyba że leży pod BlackoutImmune

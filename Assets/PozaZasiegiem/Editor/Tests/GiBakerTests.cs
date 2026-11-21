@@ -136,6 +136,81 @@ public class GiBakerTests
         Assert.IsFalse(GiBaker.OffInOutage(l));
     }
 
+    // ---------- materiały świecące: poza wypalaniem, ale nadal świecą ----------
+
+    [Test]
+    public void ExcludeEmissionFromBake_KeepsMaterialGlowing()
+    {
+        var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        m.EnableKeyword("_EMISSION");
+        m.SetColor("_EmissionColor", new Color(0.55f, 0.53f, 0.47f));
+        m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+
+        GiBaker.ExcludeEmissionFromBake(m);
+
+        Assert.IsTrue(m.IsKeywordEnabled("_EMISSION"), "kartka notatki / ekran przestały świecić");
+        Assert.AreNotEqual(MaterialGlobalIlluminationFlags.EmissiveIsBlack, m.globalIlluminationFlags,
+            "EmissiveIsBlack: URP wyłącza _EMISSION przy walidacji materiału");
+        Assert.IsFalse((m.globalIlluminationFlags & MaterialGlobalIlluminationFlags.BakedEmissive) != 0,
+            "emisja nadal trafia do wypalania");
+        // None też gasi emisję: postprocesor URP przy kolejnym odświeżeniu assetów wyłącza wtedy _EMISSION
+        // (sprawdzone na M_NotePaper). RealtimeEmissive = jak na main; realtime GI jest wyłączone, więc nie wpływa na sondy.
+        Assert.AreEqual(MaterialGlobalIlluminationFlags.RealtimeEmissive, m.globalIlluminationFlags);
+        Object.DestroyImmediate(m);
+    }
+
+    [Test]
+    public void ExcludeEmissionFromBake_SurvivesReimport()
+    {
+        // URP przy imporcie .mat wylicza _EMISSION z flag GI – przy None/EmissiveIsBlack wyłącza emisję
+        const string dir = "Assets/PozaZasiegiem/Editor/Tests/_emtmp";
+        if (!UnityEditor.AssetDatabase.IsValidFolder(dir)) UnityEditor.AssetDatabase.CreateFolder("Assets/PozaZasiegiem/Editor/Tests", "_emtmp");
+        try
+        {
+            string path = dir + "/M.mat";
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", new Color(0.55f, 0.53f, 0.47f));
+            UnityEditor.AssetDatabase.CreateAsset(m, path);
+
+            GiBaker.ExcludeEmissionFromBake(m);
+            UnityEditor.EditorUtility.SetDirty(m);
+            UnityEditor.AssetDatabase.SaveAssetIfDirty(m);
+            UnityEditor.AssetDatabase.ImportAsset(path, UnityEditor.ImportAssetOptions.ForceUpdate);
+            var re = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
+
+            Assert.IsTrue(re.IsKeywordEnabled("_EMISSION"), "po imporcie materiał przestał świecić");
+            Assert.IsFalse((re.globalIlluminationFlags & MaterialGlobalIlluminationFlags.BakedEmissive) != 0);
+        }
+        finally { UnityEditor.AssetDatabase.DeleteAsset(dir); }
+    }
+
+    [Test]
+    public void ExcludeEmissionFromBake_RestoresKeywordOnEmissiveColour()
+    {
+        // naprawa materiałów zepsutych wcześniejszym EmissiveIsBlack
+        var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        m.DisableKeyword("_EMISSION");
+        m.SetColor("_EmissionColor", new Color(1.8f, 0.6f, 0.45f));
+        m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+
+        GiBaker.ExcludeEmissionFromBake(m);
+
+        Assert.IsTrue(m.IsKeywordEnabled("_EMISSION"));
+        Object.DestroyImmediate(m);
+    }
+
+    [Test]
+    public void ExcludeEmissionFromBake_LeavesNonEmissiveAlone()
+    {
+        var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        m.DisableKeyword("_EMISSION");
+        m.SetColor("_EmissionColor", Color.black);
+        GiBaker.ExcludeEmissionFromBake(m);
+        Assert.IsFalse(m.IsKeywordEnabled("_EMISSION"));
+        Object.DestroyImmediate(m);
+    }
+
     // ---------- przebudowa mapy usuwa stare dane wypalania (leżą obok zestawu, nie w podfolderze) ----------
 
     [Test]
