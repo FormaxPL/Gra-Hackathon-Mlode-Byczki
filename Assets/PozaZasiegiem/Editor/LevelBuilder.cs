@@ -87,6 +87,10 @@ public static class LevelBuilder
     static int RI(int min, int maxExcl) => rng.Next(min, maxExcl);
     static float RR(float a, float b) => a + (b - a) * R();
 
+    /// <summary>Bez okna z raportem na końcu (budowanie sterowane z zewnątrz, np. z CLI). Raport trafia do LastReport i konsoli.</summary>
+    public static bool Quiet;
+    public static string LastReport = "";
+
     [MenuItem("Poza Zasiegiem/Zbuduj scene testowa (staly uklad)", false, 1)]
     public static void BuildFixed() => Build(12345);
 
@@ -249,7 +253,8 @@ public static class LevelBuilder
         }
         Selection.activeGameObject = player;
         Debug.Log("[Poza Zasięgiem] " + report);
-        EditorUtility.DisplayDialog("Poza Zasięgiem",
+        LastReport = report;
+        if (!Quiet) EditorUtility.DisplayDialog("Poza Zasięgiem",
             "Scena zbudowana i zapisana:\n" + ScenePath + "\n\n" + report +
             "\n\nWciśnij Play – menu główne, potem intro (Spacja = pomiń).\nWASD, Shift, Ctrl/C, E, F, Tab/Q, LPM, PPM (kamera), N (noktowizja), Spacja (oddech w kryjówce), Esc = pauza/ustawienia, F1 = debug.", "OK");
     }
@@ -2328,10 +2333,8 @@ public static class LevelBuilder
         if (!urp) return "Grafika: Built-in – cienie włączone w Quality (post-processing wymaga URP).";
 
         int n = 0, shadowsOk = 0;
-        foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+        foreach (Object a in UsedPipelineAssets())
         {
-            var a = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
-            if (a == null) continue;
             SetMember(a, "m_AdditionalLightsRenderingMode", 1); // Per Pixel
             if (SetMember(a, "m_AdditionalLightShadowsSupported", true)) shadowsOk++;
             SetMember(a, "m_AdditionalLightsShadowmapResolution", 4096);
@@ -2352,7 +2355,9 @@ public static class LevelBuilder
         int fplus = 0;
         foreach (var guid in AssetDatabase.FindAssets("t:UniversalRendererData"))
         {
-            var rd = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
+            string rdPath = AssetDatabase.GUIDToAssetPath(guid);
+            if (rdPath.StartsWith("Assets/Mirza")) continue; // cudzych paczek nie ruszamy (kopia AERO jest w Generated/)
+            var rd = AssetDatabase.LoadAssetAtPath<Object>(rdPath);
             if (rd == null) continue;
             var f = rd.GetType().GetField("m_RenderingMode", BindingFlags.NonPublic | BindingFlags.Instance);
             if (f != null && f.FieldType.IsEnum && System.Enum.IsDefined(f.FieldType, "ForwardPlus"))
@@ -3713,6 +3718,108 @@ public static class LevelBuilder
         return null;
     }
 
+    /// <summary>W kopii renderera podmienia KAŻDE pole typu Material, które wskazuje materiał z shaderem mgły,
+    /// na naszą kopię. Feature oświetlenia AERO wpisuje do „swojego” materiału liczbę świateł i ambient –
+    /// jeśli zostanie przy oryginale, nasza mgła nie widzi żadnej lampy. Zwraca liczbę podmian.</summary>
+    public static int RetargetFogMaterial(Object rendererData, Material from, Material to)
+    {
+        if (rendererData == null || from == null || to == null) return 0;
+        int n = 0;
+        const BindingFlags bf = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        foreach (var f in GetFeatures(rendererData))
+        {
+            bool changed = false;
+            for (var t = f.GetType(); t != null && t != typeof(ScriptableObject); t = t.BaseType)
+                foreach (var fld in t.GetFields(bf | BindingFlags.DeclaredOnly))
+                {
+                    if (fld.FieldType != typeof(Material)) continue;
+                    var m = fld.GetValue(f) as Material;
+                    if (m == null || m == to || m.shader != from.shader) continue;
+                    fld.SetValue(f, to);
+                    changed = true;
+                    n++;
+                }
+            if (changed) EditorUtility.SetDirty(f);
+        }
+        return n;
+    }
+
+    /// <summary>Podmienia w assecie renderera feature oświetlenia mgły z paczki AERO na nasz FogLightingFeature
+    /// (ta sama kolejność na liście, materiał = nasza kopia mgły). Zwraca liczbę podmian.</summary>
+    public static int ReplaceAeroLightingFeature(Object rendererData, Material fogMaterial)
+    {
+        if (rendererData == null) return 0;
+        var so = new SerializedObject(rendererData);
+        var list = so.FindProperty("m_RendererFeatures");
+        var map = so.FindProperty("m_RendererFeatureMap");
+        if (list == null || map == null) return 0;
+        int n = 0;
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            var old = list.GetArrayElementAtIndex(i).objectReferenceValue as UnityEngine.Rendering.Universal.ScriptableRendererFeature;
+            if (old == null || old.GetType().Name != "FullscreenCustomLightingFeature") continue;
+            var ours = ScriptableObject.CreateInstance<FogLightingFeature>();
+            ours.name = "Fog Lighting (Poza Zasiegiem)";
+            ours.material = fogMaterial;
+            if (GetMember(old, "renderPassEvent") is UnityEngine.Rendering.Universal.RenderPassEvent ev) ours.renderPassEvent = ev;
+            AssetDatabase.AddObjectToAsset(ours, rendererData);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ours, out string _, out long id);
+            list.GetArrayElementAtIndex(i).objectReferenceValue = ours;
+            if (i < map.arraySize) map.GetArrayElementAtIndex(i).longValue = id;
+            Object.DestroyImmediate(old, true);
+            n++;
+        }
+        if (n > 0)
+        {
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(rendererData);
+            AssetDatabase.SaveAssets();
+        }
+        return n;
+    }
+
+    /// <summary>Wartości startowe mgły AERO dobrane do ciasnych, ciemnych wnętrz (porównanie klatek, 2026-11-21):
+    /// bez morskiego „koloru cienia”, rzadsza mgła widoczna w stożkach lamp, krótszy zasięg (dalej i tak ciemno),
+    /// mniejsze przyklejenie do podłogi, tańszy samocień od świateł dodatkowych.</summary>
+    public static void TuneAeroMaterial(Material m)
+    {
+        if (m == null) return;
+        void F(string n, float v) { if (m.HasProperty(n)) m.SetFloat(n, v); }
+        F("_Enable_Shadow_Colour", 0f);
+        if (m.HasProperty("_Colour")) m.SetColor("_Colour", new Color(0.92f, 0.9f, 0.86f, 1f));
+        F("_Density", 0.25f);
+        F("_Max_Distance", 25f);
+        F("_Steps", 16f);
+        F("_Height_Mask_Blend", 0.45f);
+        F("_Additional_Light_Self_Shadow_Steps", 4f);
+        F("_Ambient_Light_Scale", 0.15f);
+    }
+
+    /// <summary>Ocena renderera z mgłą: AERO, z feature'em oświetlenia mgły, wersja PC przed mobilną.</summary>
+    public static int ScoreAeroRenderer(string path, bool hasLightingFeature)
+    {
+        string p = path.ToLowerInvariant();
+        string file = System.IO.Path.GetFileName(p);
+        return 3 + (hasLightingFeature ? 2 : 0) + (p.Contains("aero") ? 2 : 0)
+             + (file.StartsWith("pc") ? 1 : 0) - (file.Contains("mobile") ? 1 : 0);
+    }
+
+    /// <summary>Assety URP, których gra faktycznie używa (Graphics + poziomy jakości). Kopie w cudzych paczkach
+    /// (np. ustawienia przykładowe AERO) nie są ruszane.</summary>
+    public static List<RenderPipelineAsset> UsedPipelineAssets()
+    {
+        var res = new List<RenderPipelineAsset>();
+        void Add(RenderPipelineAsset a)
+        {
+            if (a == null || res.Contains(a)) return;
+            if (AssetDatabase.GetAssetPath(a).StartsWith("Assets/Mirza")) return;
+            res.Add(a);
+        }
+        Add(GraphicsSettings.defaultRenderPipeline);
+        for (int i = 0; i < QualitySettings.names.Length; i++) Add(QualitySettings.GetRenderPipelineAssetAt(i));
+        return res;
+    }
+
     static string SetupAero()
     {
         aero = false;
@@ -3742,7 +3849,7 @@ public static class LevelBuilder
                 if (tn.ToLowerInvariant().Contains("lighting")) lighting = true;
             }
             if (fm == null || !AeroFog.IsMaterialUsable(fm)) continue;
-            int score = 3 + (lighting ? 2 : 0) + (path.ToLowerInvariant().Contains("aero") ? 2 : 0);
+            int score = ScoreAeroRenderer(path, lighting);
             if (score > bestScore) { bestScore = score; best = rd; bestMat = fm; }
         }
         if (best == null) return "AERO: nie znaleziono w projekcie – zostaje mgła z cząsteczek.";
@@ -3761,27 +3868,23 @@ public static class LevelBuilder
         {
             string msrc = AssetDatabase.GetAssetPath(bestMat);
             if (!string.IsNullOrEmpty(msrc) && msrc.EndsWith(".mat") && AssetDatabase.CopyAsset(msrc, mdst))
+            {
                 aeroMat = AssetDatabase.LoadAssetAtPath<Material>(mdst);
+                // wartości startowe tylko dla świeżej kopii – ręczne strojenie M_PZ_AeroFog.mat przetrwa przebudowę
+                TuneAeroMaterial(aeroMat);
+                EditorUtility.SetDirty(aeroMat);
+            }
             if (aeroMat == null) aeroMat = bestMat;
         }
-        foreach (var f in GetFeatures(copy))
-            if (f.GetType().Name.Contains("FullScreenPass"))
-            {
-                var m = GetMember(f, "passMaterial") as Material;
-                if (m != null && m != aeroMat && (m == bestMat || m.name.ToLowerInvariant().Contains("fog")))
-                {
-                    SetMember(f, "passMaterial", aeroMat);
-                    EditorUtility.SetDirty(f);
-                }
-            }
+        RetargetFogMaterial(copy, bestMat, aeroMat);
+        // skrypt oświetlenia mgły z paczki AERO → nasz odpowiednik (bez AERO w projekcie nie ma „missing feature”)
+        ReplaceAeroLightingFeature(copy, aeroMat);
         EditorUtility.SetDirty(copy);
 
         // dopisz renderer z mgłą do każdego assetu URP (kamera przełącza się na niego w ustawieniach)
         int added = 0;
-        foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+        foreach (Object a in UsedPipelineAssets())
         {
-            var a = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
-            if (a == null) continue;
             var so = new SerializedObject(a);
             var list = so.FindProperty("m_RendererDataList");
             if (list == null || !list.isArray) continue;
