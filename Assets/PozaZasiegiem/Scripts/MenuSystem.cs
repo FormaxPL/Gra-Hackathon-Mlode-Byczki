@@ -34,10 +34,14 @@ public class MenuSystem : MonoBehaviour
         clickClip = ProceduralAudio.Beep(900f, 0.04f);
     }
 
+    /// <summary>Scena menu głównego (korytarz Backrooms z potworem) – czas w niej płynie, potwór się rusza.</summary>
+    static bool InMenuScene => MapPicker.IsMenuScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+
     void Start()
     {
         GameSettings.ApplyAll(true);
-        if (showMainMenuOnStart && !skipMainMenuOnce) Open(Page.Main);
+        // menu główne jest osobną sceną; mapa zaczyna od razu od intro
+        if (InMenuScene) Open(Page.Main);
         else StartGame();
         skipMainMenuOnce = false;
     }
@@ -45,9 +49,26 @@ public class MenuSystem : MonoBehaviour
     void Open(Page p)
     {
         page = p;
-        Time.timeScale = 0f;
+        Time.timeScale = InMenuScene ? 1f : 0f;
         AudioListener.pause = p == Page.Pause;
         PlayerController.LockCursor(false);
+    }
+
+    static void LoadScene(string name)
+    {
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+#if UNITY_EDITOR
+        // w edytorze scena może nie być w Build Settings – wczytaj po ścieżce
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets(name + " t:Scene"))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            if (System.IO.Path.GetFileNameWithoutExtension(path) != name) continue;
+            UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(path, new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Single));
+            return;
+        }
+#endif
+        UnityEngine.SceneManagement.SceneManager.LoadScene(name);
     }
 
     void Close()
@@ -60,6 +81,14 @@ public class MenuSystem : MonoBehaviour
 
     void StartGame()
     {
+        if (InMenuScene)
+        {
+            // każde uruchomienie gry = losowy układ pomieszczeń
+            StoryDirector.checkpoint = false;
+            StoryDirector.introSeen = false;
+            LoadScene(MapPicker.Pick(new System.Random()));
+            return;
+        }
         Close();
         if (!gameStarted)
         {
@@ -178,7 +207,8 @@ public class MenuSystem : MonoBehaviour
         if (!skipMenu) StoryDirector.introSeen = false;
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        if (GameManager.Instance != null) GameManager.Instance.Restart();
+        if (!skipMenu) { LoadScene(MapPicker.MenuScene); return; } // „Menu główne” = scena menu
+        if (GameManager.Instance != null) GameManager.Instance.Restart(); // ta sama mapa
     }
 
     static void Quit()
