@@ -413672,9 +413672,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Note
   title: "Transkrypcja \u2013 108.7 MHz"
-  text: "TRANSKRYPCJA \u2013 108.7 MHz (fragment)\n\n\"...je\u015Bli kto\u015B to s\u0142yszy, tu Agencja.\nTa strefa jest POZA ZASI\u0118GIEM naszych sieci. Jedyny kana\u0142 to radiostacja w biurze kierownika.\nPotrzebne: antena, lampa nadawcza, zasilacz.\nNadaj sygna\u0142, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]"
+  text: "TRANSKRYPCJA \u2013 108.7 MHz (fragment)\n\n\"...je\u015Bli kto\u015B to s\u0142yszy, tu Agencja ECHO.\nTa strefa jest POZA ZASI\u0118GIEM naszych sieci. Jedyny kana\u0142 to radiostacja w biurze kierownika.\nPotrzebne: antena, lampa nadawcza, zasilacz.\nNadaj sygna\u0142, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]"
   titleEn: "Transcript \u2013 108.7 MHz"
-  textEn: "TRANSCRIPT \u2013 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the Agency.\nThis zone is OUT OF RANGE of our networks. The only channel is the radio in the manager's office.\nRequired: antenna, transmitter tube, power supply.\nSend the signal and we will come. Don't trust anything that wears a uniform...\"\n\n[static]"
+  textEn: "TRANSCRIPT \u2013 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the ECHO Agency.\nThis zone is OUT OF RANGE of our networks. The only channel is the radio in the manager's office.\nRequired: antenna, transmitter tube, power supply.\nSend the signal and we will come. Don't trust anything that wears a uniform...\"\n\n[static]"
   paper: {fileID: 1619933401}
 --- !u!65 &1221087191
 BoxCollider:
@@ -487172,11 +487172,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RadioStation
   winTitle: "SYGNA\u0141 NADANY"
-  winText: "Szum... trzaski... a potem g\u0142os:\n\"Tu Agencja. Odebrali\u015Bmy tw\xF3j sygna\u0142. Nie ruszaj si\u0119. Idziemy po ciebie.\""
+  winText: "Szum... trzaski... a potem g\u0142os:\n\"Tu Agencja ECHO. Odebrali\u015Bmy tw\xF3j sygna\u0142. Nie ruszaj si\u0119. Idziemy po ciebie.\""
   winTitleEn: SIGNAL SENT
   winTextEn: 'Static... crackling... and then a voice:
 
-    "This is the Agency. We received your signal. Don''t move. We''re coming for you."'
+    "This is the ECHO Agency. We received your signal. Don''t move. We''re coming for you."'
 --- !u!65 &1421115082
 BoxCollider:
   m_ObjectHideFlags: 0

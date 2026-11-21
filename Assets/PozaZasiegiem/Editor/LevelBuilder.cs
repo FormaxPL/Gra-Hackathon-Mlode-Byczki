@@ -3494,7 +3494,7 @@ public static class LevelBuilder
         surf.gameObject.AddComponent<BlackoutImmune>();
         story.surface = surf.gameObject;
 
-        // ---------- INTRO: opuszczony magazyn Freddy Fazbear's Pizza ----------
+        // ---------- INTRO: opuszczony magazyn fabryki paliwa syntetycznego ----------
         var intro = new GameObject("Magazyn – intro").transform;
         intro.SetParent(surf);
         story.introSet = intro.gameObject;

@@ -102,13 +102,13 @@ public static class NoteTexts
 
         [Office] = new Entry(
             "Transkrypcja – 108.7 MHz",
-            "TRANSKRYPCJA – 108.7 MHz (fragment)\n\n\"...jeśli ktoś to słyszy, tu Agencja.\n" +
+            "TRANSKRYPCJA – 108.7 MHz (fragment)\n\n\"...jeśli ktoś to słyszy, tu Agencja ECHO.\n" +
             "Ta strefa jest POZA ZASIĘGIEM naszych sieci. Jedyny kanał to radiostacja w biurze.\n" +
             "Potrzebne: antena, lampa nadawcza, zasilacz.\n" +
             "Nadaj sygnał, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]\n\n" +
             "(dopisane ołówkiem)\nSłuchałam tego sto razy. Oni naprawdę przyjdą. Muszą.",
             "Transcript – 108.7 MHz",
-            "TRANSCRIPT – 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the Agency.\n" +
+            "TRANSCRIPT – 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the ECHO Agency.\n" +
             "This zone is OUT OF RANGE of our networks. The only channel is the radio in the office.\n" +
             "Required: antenna, transmitter tube, power supply.\n" +
             "Send the signal and we will come. Don't trust anything that wears a uniform...\"\n\n[static]\n\n" +
