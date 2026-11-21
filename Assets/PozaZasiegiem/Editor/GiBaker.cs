@@ -30,6 +30,10 @@ public static class GiBaker
     public const string BakingSetPath = "Assets/PozaZasiegiem/Generated/PZ_GI_BakingSet.asset";
     public const string LightingPath = "Assets/PozaZasiegiem/Generated/PZ_Lighting.lighting";
     const string VolumeName = "Adaptive Probe Volume (GI)";
+    /// <summary>Mnożnik światła odbitego dla wypalanych lamp. Lampy to wąskie reflektory o krótkim zasięgu:
+    /// przy 1× i 3× odbicie było niewidoczne, przy 8× pokój wypełnia ciepłe światło od podłogi bez przecieków
+    /// przez ściany (porównanie klatek 2026-11-21, sam składnik GI: 1× 0.012 → 8× 0.018 luma).</summary>
+    public const float BounceIntensity = 8f;
 
     /// <summary>Obiekt bierze udział w GI (odbija światło do sond): zwykła siatka, wszystkie materiały
     /// nieprzezroczyste, nic ruchomego ani efektów (snopy, mgła) w rodzicach.</summary>
@@ -93,6 +97,7 @@ public static class GiBaker
             {
                 bool bake = ShouldBake(l);
                 l.lightmapBakeType = bake ? LightmapBakeType.Mixed : LightmapBakeType.Realtime;
+                if (bake) l.bounceIntensity = BounceIntensity;
                 if (bake) mixed++; else realtime++;
             }
 
@@ -130,12 +135,146 @@ public static class GiBaker
                "Uruchom Poza Zasiegiem → Wypal oswietlenie (GI).";
     }
 
-    static void DeleteBakingSet()
+    /// <summary>W scenariuszu „Awaria” gaśnie wypalane (Mixed) światło zasilane z sieci, chyba że leży pod BlackoutImmune
+    /// – dokładnie te same, które gasi Blackout w grze.</summary>
+    public static bool OffInOutage(Light l)
     {
-        if (AssetDatabase.LoadAssetAtPath<Object>(BakingSetPath) != null) AssetDatabase.DeleteAsset(BakingSetPath);
-        // dane APV leżą w folderze o nazwie zestawu obok niego
-        string dataDir = BakingSetPath.Substring(0, BakingSetPath.Length - ".asset".Length);
-        if (AssetDatabase.IsValidFolder(dataDir)) AssetDatabase.DeleteAsset(dataDir);
+        if (l == null || l.lightmapBakeType != LightmapBakeType.Mixed) return false;
+        var lc = l.GetComponent<LightCategory>();
+        return lc != null && lc.powered && l.GetComponentInParent<BlackoutImmune>(true) == null;
+    }
+
+    // ---------------- wypalanie obu scenariuszy ----------------
+
+    public static bool IsBaking { get; private set; }
+    public static string LastReport { get; private set; } = "";
+    /// <summary>Bez okna z raportem na końcu (wypalanie sterowane z zewnątrz).</summary>
+    public static bool Quiet;
+
+    enum Step { Power, Outage }
+    static Step step;
+    static bool started;
+    static double t0, tPower, tOutage;
+    static readonly System.Collections.Generic.List<(GameObject go, bool active)> savedLights = new System.Collections.Generic.List<(GameObject, bool)>();
+
+    [MenuItem("Poza Zasiegiem/Wypal oswietlenie (GI)", false, 20)]
+    public static void BakeBoth()
+    {
+        if (IsBaking) return;
+        var scene = SceneManager.GetActiveScene();
+        if (AssetDatabase.LoadAssetAtPath<ProbeVolumeBakingSet>(BakingSetPath) == null)
+        {
+            Finish("GI: brak zestawu wypalania – najpierw zbuduj scenę (Poza Zasiegiem → Zbuduj scene testowa).", false);
+            return;
+        }
+        EditorSceneManager.SaveScene(scene);
+        savedLights.Clear();
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var l in root.GetComponentsInChildren<Light>(true))
+                if (l.lightmapBakeType == LightmapBakeType.Mixed) savedLights.Add((l.gameObject, l.gameObject.activeSelf));
+        IsBaking = true;
+        LastReport = "";
+        t0 = EditorApplication.timeSinceStartup;
+        BeginStep(Step.Power);
+        EditorApplication.update += Tick;
+    }
+
+    static void BeginStep(Step s)
+    {
+        step = s;
+        started = false;
+        foreach (var (go, _) in savedLights)
+        {
+            if (go == null) continue;
+            var l = go.GetComponent<Light>();
+            go.SetActive(s == Step.Power || !OffInOutage(l));
+        }
+        ProbeReferenceVolume.instance.lightingScenario = s == Step.Power ? GiScenario.Power : GiScenario.Outage;
+    }
+
+    static void Tick()
+    {
+        try
+        {
+            EditorUtility.DisplayProgressBar("Poza Zasięgiem – wypalanie GI",
+                step == Step.Power ? "Scenariusz „Prad” (lampy włączone)..." : "Scenariusz „Awaria” (zasilane lampy zgaszone)...",
+                step == Step.Power ? 0.25f : 0.75f);
+            if (!started)
+            {
+                started = AdaptiveProbeVolumes.BakeAsync();
+                if (!started) { Fail("GI: nie udało się rozpocząć wypalania (APV)."); }
+                return;
+            }
+            if (AdaptiveProbeVolumes.isRunning) return;
+            if (step == Step.Power)
+            {
+                tPower = EditorApplication.timeSinceStartup - t0;
+                BeginStep(Step.Outage);
+                return;
+            }
+            tOutage = EditorApplication.timeSinceStartup - t0 - tPower;
+            Restore();
+            var set = AssetDatabase.LoadAssetAtPath<ProbeVolumeBakingSet>(BakingSetPath);
+            bool ok = set != null && set.HasBakedData(GiScenario.Power) && set.HasBakedData(GiScenario.Outage);
+            Finish(ok ? $"GI: wypalone – „{GiScenario.Power}” {tPower:0} s, „{GiScenario.Outage}” {tOutage:0} s. {DataSizeReport()}"
+                      : "GI: wypalanie skończone, ale brak danych dla obu scenariuszy.", true);
+        }
+        catch (System.Exception e)
+        {
+            Fail("GI: błąd wypalania – " + e.Message);
+        }
+    }
+
+    static void Restore()
+    {
+        foreach (var (go, active) in savedLights) if (go != null) go.SetActive(active);
+        ProbeReferenceVolume.instance.lightingScenario = GiScenario.Power;
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+    }
+
+    static void Fail(string msg)
+    {
+        Restore();
+        Finish(msg, true);
+    }
+
+    static void Finish(string msg, bool wasRunning)
+    {
+        if (wasRunning) EditorApplication.update -= Tick;
+        EditorUtility.ClearProgressBar();
+        IsBaking = false;
+        LastReport = msg;
+        Debug.Log("[Poza Zasięgiem] " + msg);
+        if (!Quiet) EditorUtility.DisplayDialog("Poza Zasięgiem", msg, "OK");
+    }
+
+    /// <summary>Łączny rozmiar danych APV i największy plik (limit GitHuba: ostrzeżenie od 50 MB).</summary>
+    static string DataSizeReport()
+    {
+        string dir = System.IO.Path.GetDirectoryName(BakingSetPath);
+        long total = 0, biggest = 0; string biggestName = "";
+        foreach (var f in System.IO.Directory.GetFiles(dir, "*.bytes", System.IO.SearchOption.AllDirectories))
+        {
+            long len = new System.IO.FileInfo(f).Length;
+            total += len;
+            if (len > biggest) { biggest = len; biggestName = System.IO.Path.GetFileName(f); }
+        }
+        return $"Dane: {total / 1048576f:0.0} MB, największy plik {biggestName} {biggest / 1048576f:0.0} MB.";
+    }
+
+    /// <summary>Usuwa zestaw wypalania i jego dane. APV zapisuje je OBOK zestawu jako „Nazwa.Cell*.bytes”
+    /// i „Nazwa-Scenariusz.Cell*.bytes” (sprawdzone w Unity 6000.6).</summary>
+    public static void DeleteBakingSet(string setPath = BakingSetPath)
+    {
+        string dir = System.IO.Path.GetDirectoryName(setPath).Replace('\\', '/');
+        string baseName = System.IO.Path.GetFileNameWithoutExtension(setPath);
+        if (AssetDatabase.LoadAssetAtPath<Object>(setPath) != null) AssetDatabase.DeleteAsset(setPath);
+        foreach (var f in System.IO.Directory.GetFiles(dir, baseName + "*.bytes"))
+        {
+            string name = System.IO.Path.GetFileName(f);
+            if (name.StartsWith(baseName + ".") || name.StartsWith(baseName + "-"))
+                AssetDatabase.DeleteAsset(dir + "/" + name);
+        }
     }
 
     static void SetBool(SerializedObject so, string prop, bool v)

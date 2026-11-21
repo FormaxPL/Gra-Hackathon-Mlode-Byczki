@@ -106,6 +106,61 @@ public class GiBakerTests
         Assert.IsFalse(GiBaker.ContributesGI(r));
     }
 
+    // ---------- scenariusz „Awaria”: które wypalane światła gasną ----------
+
+    Light BakedLamp(bool powered)
+    {
+        var g = Make(1);
+        g.GetComponent<LightCategory>().powered = powered;
+        var l = g.GetComponent<Light>();
+        l.lightmapBakeType = LightmapBakeType.Mixed;
+        return l;
+    }
+
+    [Test] public void PoweredMixedLamp_IsOffInOutage() => Assert.IsTrue(GiBaker.OffInOutage(BakedLamp(true)));
+    [Test] public void EmergencyLight_StaysOnInOutage() => Assert.IsFalse(GiBaker.OffInOutage(BakedLamp(false)));
+
+    [Test]
+    public void RealtimeLight_IsNotTouchedByOutageBake()
+    {
+        var l = BakedLamp(true);
+        l.lightmapBakeType = LightmapBakeType.Realtime;
+        Assert.IsFalse(GiBaker.OffInOutage(l));
+    }
+
+    [Test]
+    public void LampUnderBlackoutImmune_StaysOnInOutage()
+    {
+        var l = BakedLamp(true);
+        l.transform.SetParent(Parent(typeof(BlackoutImmune)).transform);
+        Assert.IsFalse(GiBaker.OffInOutage(l));
+    }
+
+    // ---------- przebudowa mapy usuwa stare dane wypalania (leżą obok zestawu, nie w podfolderze) ----------
+
+    [Test]
+    public void DeleteBakingSet_RemovesSetAndItsDataFiles_KeepsOthers()
+    {
+        const string dir = "Assets/PozaZasiegiem/Editor/Tests/_gitmp";
+        if (!UnityEditor.AssetDatabase.IsValidFolder(dir)) UnityEditor.AssetDatabase.CreateFolder("Assets/PozaZasiegiem/Editor/Tests", "_gitmp");
+        try
+        {
+            string set = dir + "/S.asset";
+            UnityEditor.AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<UnityEngine.Rendering.ProbeVolumeBakingSet>(), set);
+            foreach (var f in new[] { "S-Prad.CellData.bytes", "S.CellSharedData.bytes", "Other.bytes" })
+                System.IO.File.WriteAllBytes(dir + "/" + f, new byte[] { 1 });
+            UnityEditor.AssetDatabase.Refresh();
+
+            GiBaker.DeleteBakingSet(set);
+
+            Assert.IsFalse(System.IO.File.Exists(set));
+            Assert.IsFalse(System.IO.File.Exists(dir + "/S-Prad.CellData.bytes"));
+            Assert.IsFalse(System.IO.File.Exists(dir + "/S.CellSharedData.bytes"));
+            Assert.IsTrue(System.IO.File.Exists(dir + "/Other.bytes"));
+        }
+        finally { UnityEditor.AssetDatabase.DeleteAsset(dir); }
+    }
+
     [Test]
     public void UnderHangingSway_IsNotBaked()
     {
