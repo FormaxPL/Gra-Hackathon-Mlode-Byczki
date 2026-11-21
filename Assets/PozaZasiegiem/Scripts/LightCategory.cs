@@ -17,6 +17,8 @@ public class LightCategory : MonoBehaviour
     public bool powered = true;
     [Tooltip("Nie wyłączaj przez optymalizację (np. światła w przerywnikach)")]
     public bool neverCull;
+    [Tooltip("Nie wypalaj odbić tego światła do GI (światła fabularne, przerywniki) – zostaje tylko na żywo")]
+    public bool excludeFromBake;
 
     public Light Light => l;
     /// <summary>LightCuller: cień niepotrzebny (światło za ścianą / za plecami).</summary>

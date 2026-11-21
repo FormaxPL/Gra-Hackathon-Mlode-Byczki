@@ -16,12 +16,19 @@ public class Blackout : MonoBehaviour
     public float flashlightPower = 0.3f;
     [Tooltip("Zasięg latarki podczas awarii (0..1)")]
     public float flashlightRange = 0.5f;
+    [Tooltip("Dodatkowe osłabienie rozproszenia latarki (szeroki stożek 115°) podczas awarii, ponad flashlightPower. " +
+             "Rozproszenie tuż przy kamerze rozświetla mgłę wolumetryczną na cały kadr – przy 1.0 dawało większość jasności obrazu.")]
+    [Range(0, 1)] public float flashlightSpill = 0.25f;
     [Tooltip("Co ile sekund włączona latarka 'wabi' potwora")]
     public float lureInterval = 2.2f;
     public float lureRadius = 15f;
     [Range(0, 1)] public float ambientLeft = 0.06f;
+    [Tooltip("Ile zostaje z odbić otoczenia (refleksów) podczas awarii. Odbicia nie zależą od ambientu ani od sond GI – " +
+             "bez tego podłoga i meble świeciły równą, niebieskawą poświatą w całym kadrze (pomiar 2026-11-21, mapa C).")]
+    [Range(0, 1)] public float reflectionLeft = 0.06f;
 
     float endTime = -1f, nextLure;
+    float savedReflection;
     Color savedAmbient, savedFog, savedCamBg;
     bool saved;
     readonly List<Renderer> swapped = new List<Renderer>();
@@ -44,7 +51,14 @@ public class Blackout : MonoBehaviour
     }
 
     // po przeładowaniu sceny w trakcie awarii światła mogły się wyłączyć, zanim Active wróciło na false
-    void Start() => LightCategory.ApplyAll();
+    IEnumerator Start()
+    {
+        LightCategory.ApplyAll();
+        // Po przeładowaniu sceny (np. restart w trakcie awarii) odbite światło ma startować z prądem.
+        // Scenariusz APV przeżywa przeładowanie, a dane sond wczytują się dopiero po Start – czekamy na nie.
+        for (float t = 0f; t < 5f && !GiScenario.IsAvailable; t += Time.unscaledDeltaTime) yield return null;
+        if (!Active) GiScenario.Set(GiScenario.Power);
+    }
 
     void OnDestroy() { if (Instance == this) Active = false; }
 
@@ -94,25 +108,37 @@ public class Blackout : MonoBehaviour
                 SetPower(false);
                 yield return new WaitForSeconds(Random.Range(0.1f, 0.25f));
             }
-        SetPower(true);
+        SetPower(true, false);
+        // odbite światło (GI) wraca płynnie: z wypalonej „Awarii” do „Prądu” w 0,5 s
+        const float giBlend = 0.5f;
+        for (float t = 0f; t < giBlend; t += Time.deltaTime)
+        {
+            GiScenario.Blend(GiScenario.Power, t / giBlend);
+            yield return null;
+        }
+        GiScenario.Set(GiScenario.Power);
         routine = null;
     }
 
-    void SetPower(bool on)
+    void SetPower(bool on, bool giInstant = true)
     {
         bool blackout = !on;
         if (Active == blackout) return;
         Active = blackout;
+        // wypalone odbicia gasną i zapalają się razem z lampami (każde mrugnięcie migotania)
+        if (giInstant) GiScenario.Set(on ? GiScenario.Power : GiScenario.Outage);
 
         if (!saved)
         {
             savedAmbient = RenderSettings.ambientLight;
             savedFog = RenderSettings.fogColor;
+            savedReflection = RenderSettings.reflectionIntensity;
             var cam = Camera.main;
             if (cam != null) savedCamBg = cam.backgroundColor;
             saved = true;
         }
         RenderSettings.ambientLight = blackout ? savedAmbient * ambientLeft : savedAmbient;
+        RenderSettings.reflectionIntensity = blackout ? savedReflection * reflectionLeft : savedReflection;
         RenderSettings.fogColor = blackout ? Color.black : savedFog;
         if (Camera.main != null) Camera.main.backgroundColor = blackout ? Color.black : savedCamBg;
         if (blackout) SwapEmissives(); else RestoreEmissives();

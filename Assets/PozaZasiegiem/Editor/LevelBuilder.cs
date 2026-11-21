@@ -21,7 +21,11 @@ public static class LevelBuilder
 {
     const string Root = "Assets/PozaZasiegiem";
     const string GenDir = Root + "/Generated";
-    const string ScenePath = Root + "/Scenes/TestLevel.unity";
+    const string ScenesDir = Root + "/Scenes";
+    /// <summary>Scena budowana w tej chwili (każda mapa w osobnym pliku).</summary>
+    static string ScenePath = ScenesDir + "/TestLevel_A.unity";
+    /// <summary>Ziarna gotowych map (MapPicker.Maps): A = stały układ z poprzednich wersji.</summary>
+    public static readonly int[] MapSeeds = { 12345, 24680, 36912 };
 
     const int W = 9, H = 9;
     const float Cell = 6f, WallH = 3.2f, WallT = 0.25f, DoorW = 2.2f, DoorH = 2.45f;
@@ -87,11 +91,22 @@ public static class LevelBuilder
     static int RI(int min, int maxExcl) => rng.Next(min, maxExcl);
     static float RR(float a, float b) => a + (b - a) * R();
 
+    /// <summary>Bez okna z raportem na końcu (budowanie sterowane z zewnątrz, np. z CLI). Raport trafia do LastReport i konsoli.</summary>
+    public static bool Quiet;
+    public static string LastReport = "";
+
     [MenuItem("Poza Zasiegiem/Zbuduj scene testowa (staly uklad)", false, 1)]
-    public static void BuildFixed() => Build(12345);
+    public static void BuildFixed() => BuildMap(MapPicker.Maps[0], MapSeeds[0]);
 
     [MenuItem("Poza Zasiegiem/Zbuduj scene testowa (losowy uklad)", false, 2)]
-    public static void BuildRandom() => Build(System.Environment.TickCount);
+    public static void BuildRandom() => BuildMap(MapPicker.Maps[0], System.Environment.TickCount);
+
+    /// <summary>Buduje jedną mapę do Assets/PozaZasiegiem/Scenes/    public static void BuildRandom() => Build(System.Environment.TickCount);lt;sceneName    public static void BuildRandom() => Build(System.Environment.TickCount);gt;.unity.</summary>
+    public static void BuildMap(string sceneName, int seed)
+    {
+        ScenePath = ScenesDir + "/" + sceneName + ".unity";
+        Build(seed);
+    }
 
     static void Build(int seed)
     {
@@ -148,6 +163,10 @@ public static class LevelBuilder
             BuildGate();
             BuildTunnel();
             BuildSurfaceSets();
+            // światła tunelu (włączane fabularnie) i przerywników nie trafiają do wypalania GI
+            foreach (var root in new[] { story.tunnelLights, story.surface })
+                if (root != null)
+                    foreach (var lc in root.GetComponentsInChildren<LightCategory>(true)) lc.excludeFromBake = true;
 
             EditorUtility.DisplayProgressBar("Poza Zasięgiem", "Przedmioty i kryjówki...", 0.45f);
             var start = new Vector2Int(0, 0);
@@ -155,7 +174,7 @@ public static class LevelBuilder
             for (int x = 0; x < W; x++)
                 for (int y = 0; y < H; y++)
                     if (corridor[x, y]) reserved.Add(new Vector2Int(x, y)); // w wąskich korytarzach nie ma miejsca na przedmioty
-            MakeNote(start, "Pognieciona kartka", StartNote, "Crumpled note", StartNoteEn);
+            MakeNote(start, NoteTexts.Start);
 
             MakePickup(PickCell(reserved, 2, 3), PickupType.Tracker, "Wykrywacz ruchu", "Motion tracker", new Color(0.3f, 1f, 0.4f));
             MakePickup(PickZoneCell(Zone.Kitchen, reserved, 3), PickupType.Weapon, "Gaśnica", "Fire extinguisher", new Color(1f, 0.2f, 0.1f));
@@ -166,10 +185,10 @@ public static class LevelBuilder
             for (int i = 0; i < 6; i++)
                 MakePickup(PickCell(reserved, 1, 99), PickupType.Battery, "Baterie", "Batteries", new Color(0.3f, 0.6f, 1f));
 
-            MakeNote(PickZoneCell(Zone.Kitchen, reserved, 2), "Grafik zmian", KitchenNote, "Shift schedule", KitchenNoteEn);
-            MakeNote(PickZoneCell(Zone.Freezer, reserved, 2), "Notatka kierownika zmiany", FreezerNote, "Shift manager's memo", FreezerNoteEn);
-            MakeNote(PickZoneCell(Zone.Dining, reserved, 2), "Ankieta klienta", DiningNote, "Customer survey", DiningNoteEn);
-            MakeNote(PickZoneCell(Zone.Office, reserved, 2), "Transkrypcja – 108.7 MHz", OfficeNote, "Transcript – 108.7 MHz", OfficeNoteEn);
+            MakeNote(PickZoneCell(Zone.Kitchen, reserved, 2), NoteTexts.Kitchen);
+            MakeNote(PickZoneCell(Zone.Freezer, reserved, 2), NoteTexts.Freezer);
+            MakeNote(PickZoneCell(Zone.Dining, reserved, 2), NoteTexts.Dining);
+            MakeNote(PickZoneCell(Zone.Office, reserved, 2), NoteTexts.Office);
 
             PlaceHidingSpots(start);
 
@@ -195,6 +214,7 @@ public static class LevelBuilder
             gm.AddComponent<RuntimeNavMeshBaker>().levelRoot = levelT;
             gm.AddComponent<MenuSystem>();
             gm.AddComponent<Blackout>();
+            gm.AddComponent<RandomBlackouts>(); // dodatkowe losowe awarie w eksploracji
             gm.AddComponent<LightCuller>();
             if (aero)
             {
@@ -237,11 +257,13 @@ public static class LevelBuilder
             MarkStatic(detailT, false);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
+            // GI: po zapisie (zestaw wypalania potrzebuje identyfikatora sceny), po MarkStatic (dokłada flagę ContributeGI)
+            string giRep = urp ? GiBaker.PrepareScene(scene) : "GI: pominięte (projekt bez URP).";
             EditorUtility.DisplayProgressBar("Poza Zasięgiem", "Occlusion Culling (rysuj tylko to, co widać)...", 0.95f);
             string occ = BakeOcclusion();
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddSceneToBuild();
-            report = gfx + "\n" + aeroRep + "\n" + pp + "\n" + validation + "\n" + entityReport + "\n" + occ;
+            report = gfx + "\n" + aeroRep + "\n" + pp + "\n" + validation + "\n" + entityReport + "\n" + occ + "\n" + giRep;
         }
         finally
         {
@@ -249,7 +271,8 @@ public static class LevelBuilder
         }
         Selection.activeGameObject = player;
         Debug.Log("[Poza Zasięgiem] " + report);
-        EditorUtility.DisplayDialog("Poza Zasięgiem",
+        LastReport = report;
+        if (!Quiet) EditorUtility.DisplayDialog("Poza Zasięgiem",
             "Scena zbudowana i zapisana:\n" + ScenePath + "\n\n" + report +
             "\n\nWciśnij Play – menu główne, potem intro (Spacja = pomiń).\nWASD, Shift, Ctrl/C, E, F, Tab/Q, LPM, PPM (kamera), N (noktowizja), Spacja (oddech w kryjówce), Esc = pauza/ustawienia, F1 = debug.", "OK");
     }
@@ -548,10 +571,14 @@ public static class LevelBuilder
             Material frame = Has(e, Zone.Freezer) ? mSteel : Has(e, Zone.Kitchen) ? mSteel
                 : (Has(e, Zone.Office) || Has(e, Zone.Dining)) ? mWoodDark : Has(e, Zone.Storage) ? mSafetyYellow : mSteelDark;
             float depth = WallT + 0.1f;
-            Vector3 jamb = e.horiz ? new Vector3(0.12f, DoorH, depth) : new Vector3(depth, DoorH, 0.12f);
-            Box("Ościeżnica", levelT, mid + dir * (DoorW / 2f - 0.06f) + Vector3.up * (DoorH / 2f), jamb, frame, true, false, null, 0f);
-            Box("Ościeżnica", levelT, mid - dir * (DoorW / 2f - 0.06f) + Vector3.up * (DoorH / 2f), jamb, frame, true, false, null, 0f);
-            Box("Nadproże", levelT, mid + Vector3.up * (DoorH + 0.06f), e.horiz ? new Vector3(DoorW, 0.12f, depth) : new Vector3(depth, 0.12f, DoorW), frame, true, false, null, 0f);
+            // Nadproże zachodzi 2 cm pod spód ściany nad drzwiami (która zaczyna się na DoorH). Wcześniej obie
+            // dolne powierzchnie leżały w jednej płaszczyźnie i migały (z-fighting) przy przechodzeniu przez drzwi.
+            const float overlap = 0.02f;
+            float jambH = DoorH - overlap;
+            Vector3 jamb = e.horiz ? new Vector3(0.12f, jambH, depth) : new Vector3(depth, jambH, 0.12f);
+            Box("Ościeżnica", levelT, mid + dir * (DoorW / 2f - 0.06f) + Vector3.up * (jambH / 2f), jamb, frame, true, false, null, 0f);
+            Box("Ościeżnica", levelT, mid - dir * (DoorW / 2f - 0.06f) + Vector3.up * (jambH / 2f), jamb, frame, true, false, null, 0f);
+            Box("Nadproże", levelT, mid + Vector3.up * (DoorH + 0.06f - overlap), e.horiz ? new Vector3(DoorW, 0.12f, depth) : new Vector3(depth, 0.12f, DoorW), frame, true, false, null, 0f);
 
             if (Has(e, Zone.Freezer)) MakeStripCurtain(mid, n);
             else if (Has(e, Zone.Kitchen) && R() < 0.75f) MakeSwingDoors(mid, n);
@@ -1835,8 +1862,10 @@ public static class LevelBuilder
         AddFrontReach(p, c);
     }
 
-    static void MakeNote(Vector2Int c, string title, string text, string titleEn, string textEn)
+    static void MakeNote(Vector2Int c, string id)
     {
+        var e = NoteTexts.All[id];
+        string title = e.title;
         Vector3 p = PedestalSpot(c);
         Box("Pedestal", levelT, p + Vector3.up * 0.45f, new Vector3(0.6f, 0.9f, 0.6f), St(c).pedestal, true, false, null, 0f);
         var root = new GameObject("Note - " + title);
@@ -1848,10 +1877,11 @@ public static class LevelBuilder
         var paper = Box("Paper", root.transform, Vector3.zero, new Vector3(0.25f, 0.01f, 0.35f), mNotePaper, false, true, Quaternion.Euler(0f, RR(-20f, 20f), 0f), 0f);
         AddSpot(root.transform, new Vector3(0.1f, 0.75f, 0.1f), Quaternion.Euler(82f, 0f, 0f), new Color(1f, 0.95f, 0.8f), 2.2f, 80f, urp ? 1.2f : 0.5f, 2, true);
         var note = root.AddComponent<Note>();
-        note.title = title;
-        note.text = text;
-        note.titleEn = titleEn;
-        note.textEn = textEn;
+        note.id = id;
+        note.title = e.title;
+        note.text = e.text;
+        note.titleEn = e.titleEn;
+        note.textEn = e.textEn;
         note.paper = paper.transform;
         AddFrontReach(p, c);
     }
@@ -2328,10 +2358,8 @@ public static class LevelBuilder
         if (!urp) return "Grafika: Built-in – cienie włączone w Quality (post-processing wymaga URP).";
 
         int n = 0, shadowsOk = 0;
-        foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+        foreach (Object a in UsedPipelineAssets())
         {
-            var a = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
-            if (a == null) continue;
             SetMember(a, "m_AdditionalLightsRenderingMode", 1); // Per Pixel
             if (SetMember(a, "m_AdditionalLightShadowsSupported", true)) shadowsOk++;
             SetMember(a, "m_AdditionalLightsShadowmapResolution", 4096);
@@ -2352,7 +2380,9 @@ public static class LevelBuilder
         int fplus = 0;
         foreach (var guid in AssetDatabase.FindAssets("t:UniversalRendererData"))
         {
-            var rd = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
+            string rdPath = AssetDatabase.GUIDToAssetPath(guid);
+            if (rdPath.StartsWith("Assets/Mirza")) continue; // cudzych paczek nie ruszamy (kopia AERO jest w Generated/)
+            var rd = AssetDatabase.LoadAssetAtPath<Object>(rdPath);
             if (rd == null) continue;
             var f = rd.GetType().GetField("m_RenderingMode", BindingFlags.NonPublic | BindingFlags.Instance);
             if (f != null && f.FieldType.IsEnum && System.Enum.IsDefined(f.FieldType, "ForwardPlus"))
@@ -2368,8 +2398,9 @@ public static class LevelBuilder
             : "Grafika: URP aktywny, ale nie znaleziono assetu URP do konfiguracji – włącz ręcznie: URP Asset > Lighting > Additional Lights > Cast Shadows.";
     }
 
-    static string SetupPostProcessing(GameObject camGo)
+    internal static string SetupPostProcessing(GameObject camGo)
     {
+        urp = GraphicsSettings.currentRenderPipeline != null; // menu budowane osobno nie przechodzi przez Build()
         if (!urp) return "Post-processing: pominięty (projekt bez URP).";
         var volT = FindType("UnityEngine.Rendering.Volume");
         var profT = FindType("UnityEngine.Rendering.VolumeProfile");
@@ -2599,6 +2630,13 @@ public static class LevelBuilder
         r.shadowCastingMode = shadows;
         if (collider) g.AddComponent<BoxCollider>().size = size;
         return g;
+    }
+
+    /// <summary>Bryła z UV w metrach (jak w mapach) – dla innych generatorów, np. sceny menu.</summary>
+    internal static GameObject WorldBox(string name, Transform parent, Vector3 pos, Vector3 size, Material m, bool collider = true)
+    {
+        if (meshCache == null) meshCache = new Dictionary<string, Mesh>();
+        return Box(name, parent, pos, size, m, collider, false, null, 0f);
     }
 
     /// <summary>Bryła w układzie lokalnym rodzica.</summary>
@@ -3077,6 +3115,7 @@ public static class LevelBuilder
         var lc = g.GetComponent<LightCategory>();
         lc.powered = false;
         lc.neverCull = neverCull;
+        lc.excludeFromBake = true; // światło fabularne – tylko na żywo
         return g;
     }
 
@@ -3455,7 +3494,7 @@ public static class LevelBuilder
         surf.gameObject.AddComponent<BlackoutImmune>();
         story.surface = surf.gameObject;
 
-        // ---------- INTRO: opuszczony magazyn "Kogucika" ----------
+        // ---------- INTRO: opuszczony magazyn fabryki paliwa syntetycznego ----------
         var intro = new GameObject("Magazyn – intro").transform;
         intro.SetParent(surf);
         story.introSet = intro.gameObject;
@@ -3713,6 +3752,114 @@ public static class LevelBuilder
         return null;
     }
 
+    /// <summary>W kopii renderera podmienia KAŻDE pole typu Material, które wskazuje materiał z shaderem mgły,
+    /// na naszą kopię. Feature oświetlenia AERO wpisuje do „swojego” materiału liczbę świateł i ambient –
+    /// jeśli zostanie przy oryginale, nasza mgła nie widzi żadnej lampy. Zwraca liczbę podmian.</summary>
+    public static int RetargetFogMaterial(Object rendererData, Material from, Material to)
+    {
+        if (rendererData == null || from == null || to == null) return 0;
+        int n = 0;
+        const BindingFlags bf = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        foreach (var f in GetFeatures(rendererData))
+        {
+            bool changed = false;
+            for (var t = f.GetType(); t != null && t != typeof(ScriptableObject); t = t.BaseType)
+                foreach (var fld in t.GetFields(bf | BindingFlags.DeclaredOnly))
+                {
+                    if (fld.FieldType != typeof(Material)) continue;
+                    var m = fld.GetValue(f) as Material;
+                    if (m == null || m == to || m.shader != from.shader) continue;
+                    fld.SetValue(f, to);
+                    changed = true;
+                    n++;
+                }
+            if (changed) EditorUtility.SetDirty(f);
+        }
+        return n;
+    }
+
+    /// <summary>Podmienia w assecie renderera feature oświetlenia mgły z paczki AERO na nasz FogLightingFeature
+    /// (ta sama kolejność na liście, materiał = nasza kopia mgły). Zwraca liczbę podmian.</summary>
+    public static int ReplaceAeroLightingFeature(Object rendererData, Material fogMaterial)
+    {
+        if (rendererData == null) return 0;
+        var so = new SerializedObject(rendererData);
+        var list = so.FindProperty("m_RendererFeatures");
+        var map = so.FindProperty("m_RendererFeatureMap");
+        if (list == null || map == null) return 0;
+        int n = 0;
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            var old = list.GetArrayElementAtIndex(i).objectReferenceValue as UnityEngine.Rendering.Universal.ScriptableRendererFeature;
+            if (old == null || old.GetType().Name != "FullscreenCustomLightingFeature") continue;
+            var ours = ScriptableObject.CreateInstance<FogLightingFeature>();
+            ours.name = "Fog Lighting (Poza Zasiegiem)";
+            ours.material = fogMaterial;
+            if (GetMember(old, "renderPassEvent") is UnityEngine.Rendering.Universal.RenderPassEvent ev) ours.renderPassEvent = ev;
+            AssetDatabase.AddObjectToAsset(ours, rendererData);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ours, out string _, out long id);
+            list.GetArrayElementAtIndex(i).objectReferenceValue = ours;
+            if (i < map.arraySize) map.GetArrayElementAtIndex(i).longValue = id;
+            Object.DestroyImmediate(old, true);
+            n++;
+        }
+        if (n > 0)
+        {
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(rendererData);
+            AssetDatabase.SaveAssets();
+        }
+        return n;
+    }
+
+    /// <summary>Wartości startowe mgły AERO dobrane do ciasnych, ciemnych wnętrz (porównanie klatek, 2026-11-21):
+    /// bez morskiego „koloru cienia”, rzadsza mgła widoczna w stożkach lamp, krótszy zasięg (dalej i tak ciemno),
+    /// mniejsze przyklejenie do podłogi, tańszy samocień od świateł dodatkowych.</summary>
+    public static void TuneAeroMaterial(Material m)
+    {
+        if (m == null) return;
+        void F(string n, float v) { if (m.HasProperty(n)) m.SetFloat(n, v); }
+        F("_Enable_Shadow_Colour", 0f);
+        if (m.HasProperty("_Colour")) m.SetColor("_Colour", new Color(0.92f, 0.9f, 0.86f, 1f));
+        F("_Density", 0.12f); // 0.25 zalewało obraz poświatą przy włączonej latarce (rozproszenie 115° przy kamerze)
+        F("_Max_Distance", 25f);
+        F("_Height_Mask_Blend", 0.45f);
+        F("_Ambient_Light_Scale", 0.15f);
+        // Wydajność (pomiar 1080p, 2026-11-21): przy automatach z napojami mgła kosztowała 45 ms/klatkę.
+        // 10 kroków, bez samocienia i bez cieni świateł w mgle (+ limit świateł w FogLightingFeature) → ~9 ms,
+        // a stożki lamp wyglądają prawie tak samo (gładsze, mniej szumu).
+        F("_Steps", 10f);
+        F("_Enable_Additional_Light_Self_Shadow", 0f);
+        F("_Enable_Main_Light_Self_Shadow", 0f);
+        F("_ENABLE_ADDITIONAL_LIGHT_SHADOWS", 0f);
+        m.DisableKeyword("_ENABLE_ADDITIONAL_LIGHT_SHADOWS");
+    }
+
+    /// <summary>Ocena renderera z mgłą: AERO, z feature'em oświetlenia mgły, wersja PC przed mobilną.</summary>
+    public static int ScoreAeroRenderer(string path, bool hasLightingFeature)
+    {
+        string p = path.ToLowerInvariant();
+        string file = System.IO.Path.GetFileName(p);
+        return 3 + (hasLightingFeature ? 2 : 0) + (p.Contains("aero") ? 2 : 0)
+             + (file.StartsWith("pc") ? 1 : 0) - (file.Contains("mobile") ? 1 : 0);
+    }
+
+    /// <summary>Assety URP, których gra faktycznie używa (Graphics + poziomy jakości). Kopie w cudzych paczkach
+    /// (np. ustawienia przykładowe AERO) nie są ruszane.</summary>
+    public static List<RenderPipelineAsset> UsedPipelineAssets()
+    {
+        var res = new List<RenderPipelineAsset>();
+        void Add(RenderPipelineAsset a)
+        {
+            if (a == null || res.Contains(a)) return;
+            if (AssetDatabase.GetAssetPath(a).StartsWith("Assets/Mirza")) return;
+            res.Add(a);
+        }
+        Add(GraphicsSettings.defaultRenderPipeline);
+        for (int i = 0; i < QualitySettings.names.Length; i++) Add(QualitySettings.GetRenderPipelineAssetAt(i));
+        return res;
+    }
+
     static string SetupAero()
     {
         aero = false;
@@ -3741,8 +3888,8 @@ public static class LevelBuilder
                 }
                 if (tn.ToLowerInvariant().Contains("lighting")) lighting = true;
             }
-            if (fm == null) continue;
-            int score = 3 + (lighting ? 2 : 0) + (path.ToLowerInvariant().Contains("aero") ? 2 : 0);
+            if (fm == null || !AeroFog.IsMaterialUsable(fm)) continue;
+            int score = ScoreAeroRenderer(path, lighting);
             if (score > bestScore) { bestScore = score; best = rd; bestMat = fm; }
         }
         if (best == null) return "AERO: nie znaleziono w projekcie – zostaje mgła z cząsteczek.";
@@ -3761,27 +3908,27 @@ public static class LevelBuilder
         {
             string msrc = AssetDatabase.GetAssetPath(bestMat);
             if (!string.IsNullOrEmpty(msrc) && msrc.EndsWith(".mat") && AssetDatabase.CopyAsset(msrc, mdst))
+            {
                 aeroMat = AssetDatabase.LoadAssetAtPath<Material>(mdst);
+                // wartości startowe tylko dla świeżej kopii – ręczne strojenie M_PZ_AeroFog.mat przetrwa przebudowę
+                TuneAeroMaterial(aeroMat);
+                EditorUtility.SetDirty(aeroMat);
+            }
             if (aeroMat == null) aeroMat = bestMat;
         }
-        foreach (var f in GetFeatures(copy))
-            if (f.GetType().Name.Contains("FullScreenPass"))
-            {
-                var m = GetMember(f, "passMaterial") as Material;
-                if (m != null && m != aeroMat && (m == bestMat || m.name.ToLowerInvariant().Contains("fog")))
-                {
-                    SetMember(f, "passMaterial", aeroMat);
-                    EditorUtility.SetDirty(f);
-                }
-            }
+        RetargetFogMaterial(copy, bestMat, aeroMat);
+        // skrypt oświetlenia mgły z paczki AERO → nasz odpowiednik (bez AERO w projekcie nie ma „missing feature”)
+        ReplaceAeroLightingFeature(copy, aeroMat);
         EditorUtility.SetDirty(copy);
+        // oryginalny renderer AERO niesie porzucone podobiekty ze skryptami, których nie ma nawet w paczce
+        // (stare wersje feature'ów) – w repozytorium nie mogą zostać, bo wskazują też na materiały AERO
+        AssetDatabase.SaveAssets();
+        AssetDatabase.RemoveScriptableObjectsWithMissingScript(dst);
 
         // dopisz renderer z mgłą do każdego assetu URP (kamera przełącza się na niego w ustawieniach)
         int added = 0;
-        foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+        foreach (Object a in UsedPipelineAssets())
         {
-            var a = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(guid));
-            if (a == null) continue;
             var so = new SerializedObject(a);
             var list = so.FindProperty("m_RendererDataList");
             if (list == null || !list.isArray) continue;
@@ -3861,7 +4008,7 @@ public static class LevelBuilder
         }
     }
 
-    static void SetupRendering()
+    internal static void SetupRendering()
     {
         RenderSettings.skybox = null;
         RenderSettings.ambientMode = AmbientMode.Flat;
@@ -3872,14 +4019,85 @@ public static class LevelBuilder
         RenderSettings.fogColor = new Color(0.015f, 0.016f, 0.02f);
     }
 
-    static void AddSceneToBuild()
+    static void AddSceneToBuild() => SetBuildScenes();
+
+    /// <summary>Build Settings: najpierw menu, potem gotowe mapy (tylko te, które istnieją).</summary>
+    public static void SetBuildScenes()
     {
-        var list = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-        if (!list.Exists(s => s.path == ScenePath))
+        var list = new List<EditorBuildSettingsScene>();
+        void Add(string name)
         {
-            list.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
-            EditorBuildSettings.scenes = list.ToArray();
+            string p = ScenesDir + "/" + name + ".unity";
+            if (System.IO.File.Exists(p)) list.Add(new EditorBuildSettingsScene(p, true));
         }
+        Add(MapPicker.MenuScene);
+        foreach (var m in MapPicker.Maps) Add(m);
+        EditorBuildSettings.scenes = list.ToArray();
+    }
+
+    // ---------------- wszystkie mapy + menu jednym kliknięciem ----------------
+
+    static int buildAllStep = -1;
+    static System.Action buildAllDone;
+
+    /// <summary>Buduje 3 mapy (każdą od razu wypala – GI), potem scenę menu. Trwa kilka minut.</summary>
+    [MenuItem("Poza Zasiegiem/Zbuduj wszystkie mapy i menu", false, 0)]
+    public static void BuildAll() => BuildAll(null);
+
+    public static void BuildAll(System.Action done)
+    {
+        if (buildAllStep >= 0 || GiBaker.IsBaking) return;
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        buildAllDone = done;
+        buildAllStep = 0;
+        wasQuiet = Quiet; wasBakerQuiet = GiBaker.Quiet;
+        Quiet = true; GiBaker.Quiet = true; // żadnych okien w trakcie – zablokowałyby budowanie
+        BuildAllReport = "";
+        EditorApplication.update += BuildAllTick;
+    }
+
+    public static bool IsBuildingAll => buildAllStep >= 0;
+    public static string BuildAllReport = "";
+
+    static void BuildAllTick()
+    {
+        if (GiBaker.IsBaking) return; // czekamy na wypalenie poprzedniej mapy
+        if (buildAllStep > 0 && buildAllStep <= MapPicker.Maps.Length) BuildAllReport += MapPicker.Maps[buildAllStep - 1] + ": " + GiBaker.LastReport + "\n";
+        if (buildAllStep < MapPicker.Maps.Length)
+        {
+            bool q = Quiet, gq = GiBaker.Quiet;
+            Quiet = true; GiBaker.Quiet = true;
+            try
+            {
+                BuildMap(MapPicker.Maps[buildAllStep], MapSeeds[buildAllStep]);
+                buildAllStep++;
+                GiBaker.BakeBoth();
+            }
+            catch (System.Exception e) { BuildAllReport += "BŁĄD: " + e.Message + "\n"; FinishBuildAll(); }
+            finally { Quiet = q; GiBaker.Quiet = gq; }
+            return;
+        }
+        MenuSceneBuilder.Build();
+        // stara pojedyncza scena z poprzednich wersji
+        foreach (var old in new[] { ScenesDir + "/TestLevel.unity" })
+            if (System.IO.File.Exists(old)) { AssetDatabase.DeleteAsset(old); AssetDatabase.DeleteAsset(ScenesDir + "/TestLevel"); GiBaker.DeleteBakingSet(GenDir + "/PZ_GI_BakingSet.asset"); }
+        SetBuildScenes();
+        EditorSceneManager.OpenScene(ScenesDir + "/" + MapPicker.MenuScene + ".unity");
+        BuildAllReport += "Menu: " + MapPicker.MenuScene + " zbudowane. Build Settings: menu + " + MapPicker.Maps.Length + " mapy.";
+        Debug.Log("[Poza Zasięgiem] " + BuildAllReport);
+        FinishBuildAll();
+        if (!Quiet) EditorUtility.DisplayDialog("Poza Zasięgiem", BuildAllReport, "OK");
+    }
+
+    static bool wasQuiet, wasBakerQuiet;
+
+    static void FinishBuildAll()
+    {
+        EditorApplication.update -= BuildAllTick;
+        Quiet = wasQuiet; GiBaker.Quiet = wasBakerQuiet;
+        buildAllStep = -1;
+        buildAllDone?.Invoke();
+        buildAllDone = null;
     }
 
     static void EnsureFolder(string path)
@@ -4304,79 +4522,4 @@ public static class LevelBuilder
         kitchenProps = null; // odśwież listy (nowe materiały)
     }
 
-    // =====================================================================
-    //  NOTATKI (fabuła)
-    // =====================================================================
-
-    const string StartNote =
-        "Dzień 34.\n\nJeśli ktoś to czyta – NIE BIEGAJ. To coś słyszy kroki.\n" +
-        "Kucanie (Ctrl) jest ciche. Latarka (F) pomaga, ale widać cię z daleka – i nie świeć NA NIEGO.\n\n" +
-        "Szafki ratują życie (E). Jeśli zacznie węszyć przy twojej – wstrzymaj oddech (Spacja).\n" +
-        "Ale jeśli zobaczy, jak do niej wchodzisz...\n\n" +
-        "Pod sufitem biegną grube rury. Ono w nich chodzi – słychać stukanie, a rury drżą.\n" +
-        "Twoja kamera wciąż działa. Ma noktowizję (PPM, potem F). Ono jej nie widzi.\n\n" +
-        "Zostawiłem wykrywacz ruchu niedaleko stąd. Radiostacja w biurze kierownika jeszcze działa.\n" +
-        "Tu nie ma zasięgu. Tylko ona może nas stąd wyciągnąć.\n\n- K.";
-
-    const string StartNoteEn =
-        "Day 34.\n\nIf anyone reads this – DON'T RUN. That thing hears footsteps.\n" +
-        "Crouching (Ctrl) is quiet. The flashlight (F) helps, but it can see you from far away – and don't shine it AT IT.\n\n" +
-        "Lockers save lives (E). If it starts sniffing at yours – hold your breath (Space).\n" +
-        "But if it sees you getting in...\n\n" +
-        "Thick pipes run under the ceiling. It moves inside them – you can hear knocking, and the pipes shake.\n" +
-        "Your camera still works. It has night vision (RMB, then F). It can't see the camera's light.\n\n" +
-        "I left a motion tracker not far from here. The radio in the manager's office still works.\n" +
-        "There's no signal down here. Only the radio can get us out.\n\n- K.";
-
-    const string KitchenNoteEn =
-        "SHIFT SCHEDULE\n\nMonday: Kate, Tom, Employee\nMonday: Kate, Tom, Employee\n" +
-        "Monday: Kate, Employee\nMonday: Employee\nMonday: Employee\n\n" +
-        "(written in pen)\nWho is Employee? Nobody hired him.\n" +
-        "The fryer is too big. Yesterday it was normal. The extinguisher hangs by the grill.";
-
-    const string FreezerNoteEn =
-        "To all shifts:\n\nSomething walks in the pipes under the ceiling. First you hear knocking,\n" +
-        "the pipes shake, dust falls from the joints. When the dust falls – DON'T MOVE.\n\n" +
-        "Sometimes it waits above a hatch. You can hear a quiet purring, and the pipe drips.\n" +
-        "DON'T WALK UNDERNEATH.\n\n" +
-        "The extinguisher scares it off. I saw it flee into a pipe.\n" +
-        "But it comes back. It always comes back to where it last heard people.\n\n– shift manager";
-
-    const string DiningNoteEn =
-        "CUSTOMER SURVEY\n\nHow would you rate your visit?   1/5\n\n" +
-        "Comments: I can't find the exit. The chairs are too big. The tables hang from the ceiling.\n" +
-        "Someone in our cap has been standing behind the counter for a week and doesn't move.\n" +
-        "When I turn around – he's standing closer.";
-
-    const string OfficeNoteEn =
-        "TRANSCRIPT – 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the Agency.\n" +
-        "This zone is OUT OF RANGE of our networks. The only channel is the radio in the manager's office.\n" +
-        "Required: antenna, transmitter tube, power supply.\n" +
-        "Send the signal and we will come. Don't trust anything that wears a uniform...\"\n\n[static]";
-
-    const string KitchenNote =
-        "GRAFIK ZMIAN\n\nPoniedziałek: Kasia, Tomek, Pracownik\nPoniedziałek: Kasia, Tomek, Pracownik\n" +
-        "Poniedziałek: Kasia, Pracownik\nPoniedziałek: Pracownik\nPoniedziałek: Pracownik\n\n" +
-        "(dopisane długopisem)\nKto to jest Pracownik? Nikt go nie zatrudniał.\n" +
-        "Frytownica jest za duża. Wczoraj była normalna. Gaśnica wisi przy grillu.";
-
-    const string FreezerNote =
-        "Do wszystkich zmian:\n\nCoś chodzi w rurach pod sufitem. Najpierw słychać stukanie,\n" +
-        "rury drżą, z połączeń sypie się kurz. Kiedy kurz leci – NIE RUSZAJ SIĘ.\n\n" +
-        "Czasem czeka nad włazem. Słychać wtedy ciche mruczenie i z rury kapie.\n" +
-        "NIE PRZECHODŹ POD SPODEM.\n\n" +
-        "Gaśnica je odstrasza. Widziałem, jak uciekło do rury.\n" +
-        "Ale wraca. Zawsze wraca tam, gdzie ostatnio słyszało ludzi.\n\n– kierownik zmiany";
-
-    const string DiningNote =
-        "ANKIETA KLIENTA\n\nJak oceniasz swoją wizytę?   1/5\n\n" +
-        "Uwagi: Nie mogę znaleźć wyjścia. Krzesła są za duże. Stoły wiszą pod sufitem.\n" +
-        "Ktoś w naszej czapce stoi za ladą od tygodnia i się nie rusza.\n" +
-        "Kiedy się odwracam – stoi bliżej.";
-
-    const string OfficeNote =
-        "TRANSKRYPCJA – 108.7 MHz (fragment)\n\n\"...jeśli ktoś to słyszy, tu Agencja.\n" +
-        "Ta strefa jest POZA ZASIĘGIEM naszych sieci. Jedyny kanał to radiostacja w biurze kierownika.\n" +
-        "Potrzebne: antena, lampa nadawcza, zasilacz.\n" +
-        "Nadaj sygnał, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]";
 }

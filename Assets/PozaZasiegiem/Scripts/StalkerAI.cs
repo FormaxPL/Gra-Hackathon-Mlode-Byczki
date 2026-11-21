@@ -1182,6 +1182,9 @@ public class StalkerAI : MonoBehaviour
         if (model != null) model.SetActive(visible);
     }
 
+    /// <summary>Trailer: potwora nie widać w kadrze, dopóki nie wyskoczy z wentylacji (BeginKill go pokazuje).</summary>
+    public void HideForCutscene() => SetModelVisible(false);
+
     PipeHatch NearestHatch(Vector3 p)
     {
         PipeHatch best = null;

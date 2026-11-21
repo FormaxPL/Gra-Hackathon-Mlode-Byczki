@@ -5,10 +5,10 @@ public class RadioStation : MonoBehaviour, IInteractable
 {
     public string winTitle = "SYGNAŁ NADANY";
     [TextArea(3, 8)]
-    public string winText = "Szum... trzaski... a potem głos:\n\"Tu Agencja. Odebraliśmy twój sygnał. Nie ruszaj się. Idziemy po ciebie.\"";
+    public string winText = "Szum... trzaski... a potem głos:\n\"Tu Agencja ECHO. Odebraliśmy twój sygnał. Nie ruszaj się. Idziemy po ciebie.\"";
     public string winTitleEn = "SIGNAL SENT";
     [TextArea(3, 8)]
-    public string winTextEn = "Static... crackling... and then a voice:\n\"This is the Agency. We received your signal. Don't move. We're coming for you.\"";
+    public string winTextEn = "Static... crackling... and then a voice:\n\"This is the ECHO Agency. We received your signal. Don't move. We're coming for you.\"";
 
     bool used;
 

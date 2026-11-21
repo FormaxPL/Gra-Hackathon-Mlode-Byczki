@@ -13,7 +13,7 @@ public class MenuSystem : MonoBehaviour
 
     public bool showMainMenuOnStart = true;
 
-    enum Page { None, Main, Pause, Settings }
+    enum Page { None, Main, Pause, Settings, Controls }
     Page page, back;
     bool gameStarted;
     Vector2 scroll;
@@ -34,10 +34,14 @@ public class MenuSystem : MonoBehaviour
         clickClip = ProceduralAudio.Beep(900f, 0.04f);
     }
 
+    /// <summary>Scena menu głównego (korytarz Backrooms z potworem) – czas w niej płynie, potwór się rusza.</summary>
+    static bool InMenuScene => MapPicker.IsMenuScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+
     void Start()
     {
         GameSettings.ApplyAll(true);
-        if (showMainMenuOnStart && !skipMainMenuOnce) Open(Page.Main);
+        // menu główne jest osobną sceną; mapa zaczyna od razu od intro
+        if (InMenuScene) Open(Page.Main);
         else StartGame();
         skipMainMenuOnce = false;
     }
@@ -45,9 +49,26 @@ public class MenuSystem : MonoBehaviour
     void Open(Page p)
     {
         page = p;
-        Time.timeScale = 0f;
+        Time.timeScale = InMenuScene ? 1f : 0f;
         AudioListener.pause = p == Page.Pause;
         PlayerController.LockCursor(false);
+    }
+
+    public static void LoadScene(string name)
+    {
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+#if UNITY_EDITOR
+        // w edytorze scena może nie być w Build Settings – wczytaj po ścieżce
+        foreach (var guid in UnityEditor.AssetDatabase.FindAssets(name + " t:Scene"))
+        {
+            var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            if (System.IO.Path.GetFileNameWithoutExtension(path) != name) continue;
+            UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(path, new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Single));
+            return;
+        }
+#endif
+        UnityEngine.SceneManagement.SceneManager.LoadScene(name);
     }
 
     void Close()
@@ -60,6 +81,14 @@ public class MenuSystem : MonoBehaviour
 
     void StartGame()
     {
+        if (InMenuScene)
+        {
+            // każde uruchomienie gry = losowy układ pomieszczeń
+            StoryDirector.checkpoint = false;
+            StoryDirector.introSeen = false;
+            LoadScene(MapPicker.Pick(new System.Random()));
+            return;
+        }
         Close();
         if (!gameStarted)
         {
@@ -72,8 +101,8 @@ public class MenuSystem : MonoBehaviour
     void Update()
     {
         var gm = GameManager.Instance;
-        if (!GameInput.EscapeDown) return;
-        if (page == Page.Settings) { page = back; return; }
+        if (!GameInput.EscapeDown || DevConsole.IsOpen) return;
+        if (page == Page.Settings || page == Page.Controls) { page = back; return; }
         if (page == Page.Pause) { Close(); return; }
         if (page != Page.None) return;
         if (gm != null && (gm.IsOver || gm.IsDying || gm.IsReading)) return;
@@ -137,36 +166,43 @@ public class MenuSystem : MonoBehaviour
         float sw = Screen.width, sh = Screen.height, k = sh / 1080f;
 
         // ciemne tło z winietą i migającym tytułem
-        Fill(new Rect(0, 0, sw, sh), new Color(0f, 0f, 0f, page == Page.Main ? 0.72f : 0.8f));
+        // w scenie menu tło tylko lekko przyciemnione – widać korytarz i to, co w nim chodzi
+        bool menuScene = InMenuScene && page == Page.Main;
+        Fill(new Rect(0, 0, sw, sh), new Color(0f, 0f, 0f, menuScene ? 0.25f : page == Page.Main ? 0.72f : 0.8f));
         if (page == Page.Main || page == Page.Pause)
         {
             float flick = Random.value < 0.03f ? 0.4f : 1f;
             GUI.color = new Color(1f, 1f, 1f, flick);
-            GUI.Label(new Rect(0, sh * 0.12f, sw, 120 * k), Loc.T("POZA ZASIĘGIEM", "OUT OF RANGE"), title);
+            GUI.Label(new Rect(0, sh * 0.12f, sw, 120 * k), "THE BACKROOMS: ISOLATION", title);
             GUI.color = Color.white;
             GUI.Label(new Rect(0, sh * 0.12f + 115 * k, sw, 40 * k),
                 Loc.T("BRAK ZASIĘGU  •  nie przestawaj nasłuchiwać", "NO SIGNAL  •  keep listening"), subtitle);
         }
 
-        float bw = 420 * k, bh = 64 * k, x = (sw - bw) / 2f, y = sh * 0.42f, gap = 82 * k;
+        float bw = 420 * k, bh = 64 * k, x = menuScene ? sw * 0.06f : (sw - bw) / 2f, y = sh * 0.42f, gap = 82 * k;
         switch (page)
         {
             case Page.Main:
                 if (Button(new Rect(x, y, bw, bh), Loc.T("Rozpocznij grę", "Start game"))) StartGame();
                 if (Button(new Rect(x, y + gap, bw, bh), Loc.T("Ustawienia", "Settings"))) { back = Page.Main; page = Page.Settings; }
-                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
+                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Sterowanie", "Controls"))) { back = Page.Main; page = Page.Controls; }
+                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
                 GUI.Label(new Rect(0, sh - 60 * k, sw, 40 * k),
                     Loc.T("Słuchawki zalecane.  Esc – pauza", "Headphones recommended.  Esc – pause"), small);
                 break;
             case Page.Pause:
                 if (Button(new Rect(x, y, bw, bh), Loc.T("Wróć do gry", "Resume"))) Close();
                 if (Button(new Rect(x, y + gap, bw, bh), Loc.T("Ustawienia", "Settings"))) { back = Page.Pause; page = Page.Settings; }
-                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Zacznij od nowa", "Restart"))) Restart(true);
-                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Menu główne", "Main menu"))) Restart(false);
-                if (Button(new Rect(x, y + gap * 4, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
+                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Sterowanie", "Controls"))) { back = Page.Pause; page = Page.Controls; }
+                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Zacznij od nowa", "Restart"))) Restart(true);
+                if (Button(new Rect(x, y + gap * 4, bw, bh), Loc.T("Menu główne", "Main menu"))) Restart(false);
+                if (Button(new Rect(x, y + gap * 5, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
                 break;
             case Page.Settings:
                 DrawSettings(sw, sh, k);
+                break;
+            case Page.Controls:
+                DrawControls(sw, sh, k);
                 break;
         }
     }
@@ -178,7 +214,8 @@ public class MenuSystem : MonoBehaviour
         if (!skipMenu) StoryDirector.introSeen = false;
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        if (GameManager.Instance != null) GameManager.Instance.Restart();
+        if (!skipMenu) { LoadScene(MapPicker.MenuScene); return; } // „Menu główne” = scena menu
+        if (GameManager.Instance != null) GameManager.Instance.Restart(); // ta sama mapa
     }
 
     static void Quit()
@@ -188,6 +225,46 @@ public class MenuSystem : MonoBehaviour
 #else
         Application.Quit();
 #endif
+    }
+
+    // ===================== STEROWANIE =====================
+
+    static readonly string[,] ControlRows =
+    {
+        { "W A S D", "Ruch", "Move" },
+        { "Mysz", "Rozglądanie się", "Look around" },
+        { "Shift", "Bieg – głośny, potwór go słyszy", "Run – loud, the creature hears it" },
+        { "Ctrl / C", "Kucanie – ciche skradanie", "Crouch – quiet sneaking" },
+        { "E", "Podnieś / użyj / czytaj / schowaj się w szafce", "Pick up / use / read / hide in a locker" },
+        { "Spacja (trzymaj)", "Wstrzymaj oddech w kryjówce", "Hold your breath while hiding" },
+        { "F", "Latarka", "Flashlight" },
+        { "PPM", "Kamera (podnieś / opuść)", "Camera (raise / lower)" },
+        { "F / N (z kamerą)", "Noktowizja", "Night vision" },
+        { "Kółko myszy", "Zoom kamery", "Camera zoom" },
+        { "Tab / Q (trzymaj)", "Wykrywacz ruchu", "Motion tracker" },
+        { "LPM", "Gaśnica – odstrasza potwora", "Extinguisher – scares the creature off" },
+        { "Esc", "Pauza", "Pause" },
+    };
+
+    void DrawControls(float sw, float sh, float k)
+    {
+        GUI.Label(new Rect(0, 30 * k, sw, 80 * k), Loc.T("STEROWANIE", "CONTROLS"), new GUIStyle(title) { fontSize = Mathf.RoundToInt(56 * k) });
+        rowW = Mathf.Min(1100 * k, sw * 0.9f);
+        rowX = (sw - rowW) / 2f;
+        rowH = 46 * k;
+        rowY = 130 * k;
+        row = 0;
+        var keyStyle = new GUIStyle(value) { fontStyle = FontStyle.Bold };
+        for (int i = 0; i < ControlRows.GetLength(0); i++)
+        {
+            var r = NextRow();
+            Fill(r, new Color(1f, 1f, 1f, 0.04f));
+            GUI.Label(new Rect(r.x + 16, r.y, r.width * 0.32f, r.height), ControlRows[i, 0], keyStyle);
+            GUI.Label(new Rect(r.x + r.width * 0.36f, r.y, r.width * 0.62f, r.height), Loc.T(ControlRows[i, 1], ControlRows[i, 2]), label);
+        }
+        float bw = 300 * k, bh = 58 * k;
+        if (Button(new Rect((sw - bw) / 2f, Mathf.Min(sh - bh - 20 * k, rowY + row * (rowH + 6 * k) + 16 * k), bw, bh), Loc.T("Wróć", "Back")))
+            page = back;
     }
 
     // ===================== USTAWIENIA =====================

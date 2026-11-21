@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PP_BrightnessDown
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
-  - {fileID: 232872100639088224}
---- !u!114 &232872100639088224
+  - {fileID: 1001085203615011956}
+--- !u!114 &1001085203615011956
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}

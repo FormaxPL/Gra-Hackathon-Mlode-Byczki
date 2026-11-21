@@ -636,6 +636,74 @@ public static class ProceduralAudio
     }
 
     /// <summary>Szum radiowy z "głosem" (pasmo mowy modulowane jak sylaby).</summary>
+    // formanty samogłosek (F1, F2) – a, e, i, o, u
+    static readonly Vector2[] Vowels = { new Vector2(800, 1200), new Vector2(500, 1800), new Vector2(300, 2300), new Vector2(500, 900), new Vector2(330, 800) };
+
+    /// <summary>
+    /// „Mowa” postaci bez aktora głosowego: mamrotanie z sylab (samogłoski z formantami), jak w grach indie.
+    /// Liczba sylab wynika z długości tekstu, pauzy z interpunkcji, wysokość z <paramref name="basePitch"/>
+    /// (Hz, ok. 110–130 męski, 200–230 żeński). Ten sam tekst brzmi zawsze tak samo. Pusty tekst = null.
+    /// </summary>
+    public static AudioClip Mumble(string text, float basePitch, float maxDuration)
+    {
+        if (string.IsNullOrEmpty(text)) return null;
+        uint h = 2166136261; // FNV-1a – stabilny między uruchomieniami
+        foreach (char ch in text) { h ^= ch; h *= 16777619; }
+        var r = new System.Random((int)(h & 0x7fffffff));
+
+        var data = new System.Collections.Generic.List<float>();
+        int maxN = (int)(SR * maxDuration);
+        int letters = 0;
+        for (int ci = 0; ci < text.Length && data.Count < maxN; ci++)
+        {
+            char ch = text[ci];
+            if (char.IsLetterOrDigit(ch)) { letters++; if (letters < 3) continue; letters = 0; }
+            else if (ch == '.' || ch == ',' || ch == '?' || ch == '!' || ch == '…')
+            {
+                int pause = (int)(SR * (ch == ',' ? 0.09f : 0.16f));
+                for (int i = 0; i < pause && data.Count < maxN; i++) data.Add(0f);
+                continue;
+            }
+            else continue;
+
+            // jedna sylaba: krótki dźwięczny „bla” z losową samogłoską i lekkim ślizgiem wysokości
+            float len = 0.08f + (float)r.NextDouble() * 0.06f;
+            float f0 = basePitch * (0.88f + (float)r.NextDouble() * 0.26f);
+            float glide = ((float)r.NextDouble() - 0.5f) * 0.2f;
+            var v = Vowels[r.Next(Vowels.Length)];
+            int n = (int)(SR * len);
+            // wzmocnienia harmonicznych (formanty) raz na sylabę – nie na każdą próbkę
+            int harm = Mathf.Max(1, (int)(3200f / f0));
+            var gain = new float[harm + 1];
+            for (int k = 1; k <= harm; k++)
+            {
+                float hf = k * f0;
+                gain[k] = 0.25f / k + Mathf.Exp(-Mathf.Pow((hf - v.x) / 160f, 2f)) + 0.6f * Mathf.Exp(-Mathf.Pow((hf - v.y) / 260f, 2f));
+            }
+            float ph = 0f;
+            for (int i = 0; i < n && data.Count < maxN; i++)
+            {
+                float t = (float)i / n;
+                float f = f0 * (1f + glide * t);
+                ph += 2f * Mathf.PI * f / SR;
+                float s = 0f;
+                for (int k = 1; k <= harm; k++) s += Mathf.Sin(ph * k) * gain[k];
+                float env = Mathf.Sin(Mathf.PI * Mathf.Min(1f, t * 1.15f)); // miękki atak i wybrzmienie
+                data.Add(s * env);
+            }
+            int gap = (int)(SR * (0.02f + (float)r.NextDouble() * 0.04f));
+            for (int i = 0; i < gap && data.Count < maxN; i++) data.Add(0f);
+        }
+        if (data.Count == 0) return null;
+
+        float peak = 0f;
+        foreach (var s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
+        var arr = data.ToArray();
+        float norm = peak > 0f ? 0.6f / peak : 1f;
+        for (int i = 0; i < arr.Length; i++) arr[i] *= norm;
+        return Make("Mumble", arr);
+    }
+
     public static AudioClip RadioVoice(float duration, int seed)
     {
         var r = new System.Random(seed);
@@ -757,5 +825,159 @@ public static class ProceduralAudio
             d[i] = Clip(lp * Mathf.Sin(u * Mathf.PI) * 0.9f);
         }
         return Make("Whoosh", d);
+    }
+
+    // =====================================================================
+    //  STRASZNY AMBIENT (AmbientScape) i TRAILER
+    // =====================================================================
+
+    /// <summary>
+    /// Straszne tło całej gry (pętla): głęboki dron, który powoli „dudni”, dysonansowa plama
+    /// (sekunda mała + tryton), powiew powietrza w kanałach i co jakiś czas daleki pomruk budynku.
+    /// </summary>
+    public static AudioClip CreepyAmbience(float duration)
+    {
+        var r = new System.Random(6660);
+        int n = (int)(SR * (duration + 2f));
+        var d = new float[n];
+        float lp = 0f, lp2 = 0f, rum = 0f, rum2 = 0f, whinePh = 0f, tritPh = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / SR;
+            // dwa prawie równe tony -> dudnienie 0.6 Hz
+            float sub = Mathf.Sin(2f * Mathf.PI * 36.7f * t) * 0.3f + Mathf.Sin(2f * Mathf.PI * 37.3f * t) * 0.26f;
+            float sw1 = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * t / 7.3f);
+            float sw2 = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * t / 11.1f + 1.3f);
+            float sw3 = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * t / 5.7f + 2.1f);
+            tritPh += 2f * Mathf.PI * (207.65f + 1.2f * Mathf.Sin(2f * Mathf.PI * 0.21f * t)) / SR;
+            float pad = (Mathf.Sin(2f * Mathf.PI * 146.83f * t) + 0.4f * Mathf.Sin(2f * Mathf.PI * 293.66f * t)) * 0.05f * sw1
+                      + (Mathf.Sin(2f * Mathf.PI * 155.56f * t) + 0.4f * Mathf.Sin(2f * Mathf.PI * 311.13f * t)) * 0.045f * sw2
+                      + Mathf.Sin(tritPh) * 0.035f * sw3;
+            // cichy, szklany pisk, który powoli „pływa”
+            whinePh += 2f * Mathf.PI * (1318.5f + 6f * Mathf.Sin(2f * Mathf.PI * 0.07f * t)) / SR;
+            float whine = Mathf.Sin(whinePh) * 0.012f * sw1 * sw2;
+            float nz = (float)r.NextDouble() * 2f - 1f;
+            lp += (nz - lp) * 0.03f;
+            lp2 += (lp - lp2) * 0.03f;
+            float air = lp2 * 6f * (0.35f + 0.65f * Mathf.PerlinNoise(t * 0.15f, 3.3f));
+            rum += (nz - rum) * 0.002f;
+            rum2 += (rum - rum2) * 0.004f;
+            float swell = Mathf.PerlinNoise(t * 0.09f, 7.7f);
+            float rumble = rum2 * 40f * swell * swell;
+            d[i] = Soft((sub + pad + whine + air + rumble) * 1.4f) * 0.7f;
+        }
+        return Make("CreepyAmbience", LoopFade(d, 2f));
+    }
+
+    /// <summary>Kilka głuchych stuknięć gdzieś w rurach (z ciszą na końcu – na pogłos).</summary>
+    public static AudioClip DistantKnocks(int seed)
+    {
+        var r = new System.Random(seed);
+        int count = 3 + r.Next(3);
+        var starts = new float[count];
+        float at = 0.05f;
+        for (int k = 0; k < count; k++) { starts[k] = at; at += 0.16f + (float)r.NextDouble() * 0.32f; }
+        float dur = at + 1.3f;
+        int n = (int)(SR * dur);
+        var d = new float[n];
+        float lp = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / SR;
+            float s = 0f;
+            for (int k = 0; k < count; k++)
+            {
+                float u = t - starts[k];
+                if (u < 0f || u > 0.35f) continue;
+                float amp = k == count - 1 ? 1f : 0.75f + 0.25f * Mathf.Sin(k * 1.7f);
+                s += Mathf.Sin(2f * Mathf.PI * (85f + 20f * Mathf.Exp(-u * 30f)) * u) * Mathf.Exp(-u * 16f) * amp;
+                s += ((float)r.NextDouble() * 2f - 1f) * Mathf.Exp(-u * 90f) * 0.5f * amp;
+            }
+            lp += (s - lp) * 0.25f;
+            d[i] = Clip(Soft(lp * 2.2f) * 0.8f);
+        }
+        return Make("DistantKnocks", d);
+    }
+
+    /// <summary>Jęk metalu – rura pracuje pod ciężarem czegoś, co po niej pełznie.</summary>
+    public static AudioClip MetalGroan(int seed)
+    {
+        var r = new System.Random(seed);
+        float dur = 2.4f + (float)r.NextDouble() * 1.2f;
+        int n = (int)(SR * (dur + 1.2f));
+        var d = new float[n];
+        float ph = 0f, lp = 0f, baseF = 48f + (float)r.NextDouble() * 30f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / SR;
+            if (t > dur) { d[i] = 0f; continue; }
+            float u = t / dur;
+            float f = baseF * (1f + 0.35f * Mathf.Sin(u * Mathf.PI * 1.3f)) + 12f * Mathf.PerlinNoise(t * 6f, seed * 0.01f);
+            ph += 2f * Mathf.PI * f / SR;
+            float env = Mathf.Pow(Mathf.Sin(u * Mathf.PI), 1.5f);
+            float grit = 0.75f + 0.5f * (Mathf.PerlinNoise(t * 40f, 2.2f) - 0.5f);
+            float tone = Soft(Mathf.Sin(ph) * 4f) * grit + Mathf.Sin(ph * 3.01f) * 0.25f + Mathf.Sin(ph * 5.03f) * 0.12f;
+            float nz = (float)r.NextDouble() * 2f - 1f;
+            lp += (nz - lp) * 0.08f;
+            d[i] = Clip((tone * 0.45f + lp * 0.35f) * env);
+        }
+        return Make("MetalGroan", d);
+    }
+
+    /// <summary>Niewyraźny szept – jakby ktoś mówił tuż za ścianą.</summary>
+    public static AudioClip Whisper(int seed, float duration)
+    {
+        var r = new System.Random(seed);
+        int n = (int)(SR * (duration + 1f));
+        var d = new float[n];
+        float lpA = 0f, lpB = 0f, syllEnd = 0f, syllStart = 0f, gapEnd = 0f;
+        bool hiss = false;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / SR;
+            if (t > duration) { d[i] = 0f; continue; }
+            if (t >= gapEnd && t >= syllEnd)
+            {
+                syllStart = t;
+                syllEnd = t + 0.08f + (float)r.NextDouble() * 0.16f;
+                gapEnd = syllEnd + ((float)r.NextDouble() < 0.25f ? 0.15f + (float)r.NextDouble() * 0.25f : 0.02f);
+                hiss = r.NextDouble() < 0.3;
+            }
+            float nz = (float)r.NextDouble() * 2f - 1f;
+            lpA += (nz - lpA) * 0.45f;
+            lpB += (nz - lpB) * 0.06f;
+            float band = lpA - lpB;          // „głos” (pasmo środkowe)
+            float sib = nz - lpA;            // syczące „s”
+            float syl = t < syllEnd ? Mathf.Sin(Mathf.Clamp01((t - syllStart) / (syllEnd - syllStart)) * Mathf.PI) : 0f;
+            float formant = 0.6f + 0.4f * Mathf.Sin(2f * Mathf.PI * (3f + 2f * Mathf.PerlinNoise(t * 2f, seed)) * t);
+            float env = Mathf.Clamp01(t / 0.3f) * Mathf.Clamp01((duration - t) / 0.4f);
+            d[i] = Clip((band * formant * 1.6f + (hiss ? sib * 0.6f : sib * 0.1f)) * syl * env * 0.9f);
+        }
+        return Make("Whisper", d);
+    }
+
+    /// <summary>Uderzenie pod tytuł gry w trailerze: niski, przesterowany „braam” z długim ogonem.</summary>
+    public static AudioClip TitleBoom()
+    {
+        var r = new System.Random(777);
+        float dur = 4.5f;
+        int n = (int)(SR * dur);
+        var d = new float[n];
+        float ph = 0f, subPh = 0f, lp = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = (float)i / SR;
+            ph += 2f * Mathf.PI * 36.7f / SR;
+            float saw = 0f;
+            for (int k = 1; k <= 7; k++) saw += Mathf.Sin(ph * k * (1f + 0.002f * k)) / k;
+            subPh += 2f * Mathf.PI * (36.7f + 30f * Mathf.Exp(-t * 5f)) / SR;
+            float sub = Mathf.Sin(subPh);
+            float nz = (float)r.NextDouble() * 2f - 1f;
+            lp += (nz - lp) * 0.2f;
+            float env = Mathf.Min(1f, t / 0.01f) * Mathf.Exp(-t * 0.85f);
+            float hit = lp * Mathf.Exp(-t * 6f) * 1.4f;
+            d[i] = Soft((saw * 0.8f + sub * 1.1f) * env * 2.2f + hit) * 0.95f;
+        }
+        return Make("TitleBoom", d);
     }
 }

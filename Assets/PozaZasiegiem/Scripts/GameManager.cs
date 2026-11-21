@@ -16,8 +16,8 @@ public class GameManager : MonoBehaviour
     [Header("Testy")]
     [Tooltip("Na start daje wykrywacz i gaśnicę – do testowania AI")]
     public bool debugGiveAllItems = false;
-    [Tooltip("F1 w grze przełącza")]
-    public bool showDebug = true;
+    [Tooltip("Podgląd stanu potwora. F1 w grze przełącza")]
+    public bool showDebug = false;
 
     [TextArea(2, 5)]
     public string introMessage = "Spadłeś pod ziemię. BRAK ZASIĘGU.\nZnajdź 3 części i napraw radiostację w biurze kierownika.\nNasłuchuj stukania w rurach pod sufitem.  [PPM] kamera";
@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
     public AudioSource Ambience { get; private set; }
     public bool IsDying => DeathSequence.Instance != null && DeathSequence.Instance.Playing && !IsOver;
     public bool IsReading => HandInteraction.Instance != null && HandInteraction.Instance.IsReading;
-    public bool InputBlocked => IsOver || noteOpen || IsDying || IsReading || MenuSystem.IsOpen || PlayerController.CutsceneLock;
+    public bool InputBlocked => IsOver || noteOpen || IsDying || IsReading || MenuSystem.IsOpen || PlayerController.CutsceneLock || DevConsole.IsOpen;
 
     string prompt, message, noteText, endTitle, endText;
     float messageUntil, flashUntil, flashDuration = 0.5f;
@@ -68,6 +68,12 @@ public class GameManager : MonoBehaviour
         if (IsOver)
         {
             if (GameInput.RestartDown) { MenuSystem.skipMainMenuOnce = true; Restart(); }
+            else if (GameInput.EscapeDown)
+            {
+                StoryDirector.checkpoint = false;
+                StoryDirector.introSeen = false;
+                MenuSystem.LoadScene(MapPicker.MenuScene);
+            }
             return;
         }
         if (noteOpen && Time.frameCount > noteFrame && (GameInput.InteractDown || GameInput.FireDown))
@@ -197,7 +203,7 @@ public class GameManager : MonoBehaviour
         {
             Fill(new Rect(0, 0, sw, sh), won ? new Color(0f, 0f, 0f, 0.88f) : new Color(0.18f, 0f, 0f, 0.88f));
             Shadowed(new Rect(0, sh * 0.28f, sw, sh * 0.15f), endTitle, bigStyle);
-            Shadowed(new Rect(sw * 0.2f, sh * 0.45f, sw * 0.6f, sh * 0.3f), endText + Loc.T("\n\n[R] zagraj ponownie", "\n\n[R] play again"), centerStyle);
+            Shadowed(new Rect(sw * 0.2f, sh * 0.45f, sw * 0.6f, sh * 0.3f), endText + Loc.T("\n\n[R] zagraj ponownie     [Esc] menu główne", "\n\n[R] play again     [Esc] main menu"), centerStyle);
             return;
         }
 
@@ -270,7 +276,8 @@ public class GameManager : MonoBehaviour
     /// <summary>Wskaźnik zasięgu w rogu ekranu – przez całą grę: BRAK ZASIĘGU.</summary>
     void DrawSignal(float sw, float k)
     {
-        float x = sw - 190f * k, y = 24f * k;
+        // napis „BRAK ZASIĘGU” (ok. 150 px przy 1080p) musi zmieścić się przed prawą krawędzią
+        float x = sw - 260f * k, y = 24f * k;
         for (int i = 0; i < 4; i++)
         {
             float bh = (8f + i * 7f) * k;
