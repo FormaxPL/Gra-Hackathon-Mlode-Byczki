@@ -2056,7 +2056,6 @@ public static class LevelBuilder
         spill.renderMode = LightRenderMode.ForcePixel;
         SetupShadowedLight(spill, 0, 1);
         var fl = flGo.AddComponent<Flashlight>();
-        flGo.AddComponent<FlashlightBounce>(); // pozorne odbicie snopu (latarki nie ma w wypalonym GI)
         fl.lensRenderer = lens.GetComponent<Renderer>();
         fl.spill = spill;
         var beam = MakeShaft(flGo.transform, 0.03f, 3.2f, 7.5f, new Color(1f, 0.95f, 0.85f), 0.05f, "Flashlight", false);
