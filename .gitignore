@@ -74,3 +74,7 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 *.slnx
+
+# Assety z Asset Store (licencja nie pozwala ich udostepniac publicznie)
+/[Aa]ssets/Mirza/
+/[Aa]ssets/Mirza.meta

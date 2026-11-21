@@ -12,6 +12,15 @@ Trzech znajomych nagrywa film w opuszczonym magazynie. Podłoga się zapada, a M
 
 Projekt nie potrzebuje żadnych płatnych ani dodatkowych assetów. Tekstury i dźwięki są generowane kodem.
 
+### Opcjonalnie: mgła AERO
+
+Ładniejszą, wolumetryczną mgłę daje asset **AERO – Volumetric Fog and Mist** z Unity Asset Store. Nie ma go w repozytorium, bo licencja Asset Store nie pozwala go udostępniać (folder `Assets/Mirza` jest w `.gitignore`). Żeby go użyć:
+
+1. Dodaj AERO do swojego konta w Asset Store i zaimportuj go przez **Window → Package Manager → My Assets**.
+2. Zbuduj scenę ponownie: **Poza Zasiegiem → Zbuduj scene testowa (staly uklad)**. Generator sam wykryje AERO i przełączy grę na tę mgłę.
+
+Bez AERO gra działa normalnie, tylko z prostszą mgłą z cząsteczek.
+
 ## Jak uruchomić
 
 1. Pobierz projekt:
