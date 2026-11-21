@@ -110,7 +110,7 @@ public static class MenuSceneBuilder
             var fog = new GameObject("Mgła AERO").AddComponent<AeroFog>();
             fog.fogMaterial = fogMat;
             fog.densityProperties = new[] { "_Density" };
-            fog.densityBase = new[] { 0.06f }; // w krótkim korytarzu menu rzadziej niż w mapach (0.12)
+            fog.densityBase = new[] { 0.25f }; // gęściej niż w mapach (tam 0.12 przez latarkę) – chowa koniec korytarza za potworem
         }
 
         new GameObject("Menu").AddComponent<MenuSystem>();

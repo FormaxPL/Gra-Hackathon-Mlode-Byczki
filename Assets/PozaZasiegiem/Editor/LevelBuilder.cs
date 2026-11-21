@@ -174,7 +174,7 @@ public static class LevelBuilder
             for (int x = 0; x < W; x++)
                 for (int y = 0; y < H; y++)
                     if (corridor[x, y]) reserved.Add(new Vector2Int(x, y)); // w wąskich korytarzach nie ma miejsca na przedmioty
-            MakeNote(start, "Pognieciona kartka", StartNote, "Crumpled note", StartNoteEn);
+            MakeNote(start, NoteTexts.Start);
 
             MakePickup(PickCell(reserved, 2, 3), PickupType.Tracker, "Wykrywacz ruchu", "Motion tracker", new Color(0.3f, 1f, 0.4f));
             MakePickup(PickZoneCell(Zone.Kitchen, reserved, 3), PickupType.Weapon, "Gaśnica", "Fire extinguisher", new Color(1f, 0.2f, 0.1f));
@@ -185,10 +185,10 @@ public static class LevelBuilder
             for (int i = 0; i < 6; i++)
                 MakePickup(PickCell(reserved, 1, 99), PickupType.Battery, "Baterie", "Batteries", new Color(0.3f, 0.6f, 1f));
 
-            MakeNote(PickZoneCell(Zone.Kitchen, reserved, 2), "Grafik zmian", KitchenNote, "Shift schedule", KitchenNoteEn);
-            MakeNote(PickZoneCell(Zone.Freezer, reserved, 2), "Notatka kierownika zmiany", FreezerNote, "Shift manager's memo", FreezerNoteEn);
-            MakeNote(PickZoneCell(Zone.Dining, reserved, 2), "Ankieta klienta", DiningNote, "Customer survey", DiningNoteEn);
-            MakeNote(PickZoneCell(Zone.Office, reserved, 2), "Transkrypcja – 108.7 MHz", OfficeNote, "Transcript – 108.7 MHz", OfficeNoteEn);
+            MakeNote(PickZoneCell(Zone.Kitchen, reserved, 2), NoteTexts.Kitchen);
+            MakeNote(PickZoneCell(Zone.Freezer, reserved, 2), NoteTexts.Freezer);
+            MakeNote(PickZoneCell(Zone.Dining, reserved, 2), NoteTexts.Dining);
+            MakeNote(PickZoneCell(Zone.Office, reserved, 2), NoteTexts.Office);
 
             PlaceHidingSpots(start);
 
@@ -1862,8 +1862,10 @@ public static class LevelBuilder
         AddFrontReach(p, c);
     }
 
-    static void MakeNote(Vector2Int c, string title, string text, string titleEn, string textEn)
+    static void MakeNote(Vector2Int c, string id)
     {
+        var e = NoteTexts.All[id];
+        string title = e.title;
         Vector3 p = PedestalSpot(c);
         Box("Pedestal", levelT, p + Vector3.up * 0.45f, new Vector3(0.6f, 0.9f, 0.6f), St(c).pedestal, true, false, null, 0f);
         var root = new GameObject("Note - " + title);
@@ -1875,10 +1877,11 @@ public static class LevelBuilder
         var paper = Box("Paper", root.transform, Vector3.zero, new Vector3(0.25f, 0.01f, 0.35f), mNotePaper, false, true, Quaternion.Euler(0f, RR(-20f, 20f), 0f), 0f);
         AddSpot(root.transform, new Vector3(0.1f, 0.75f, 0.1f), Quaternion.Euler(82f, 0f, 0f), new Color(1f, 0.95f, 0.8f), 2.2f, 80f, urp ? 1.2f : 0.5f, 2, true);
         var note = root.AddComponent<Note>();
-        note.title = title;
-        note.text = text;
-        note.titleEn = titleEn;
-        note.textEn = textEn;
+        note.id = id;
+        note.title = e.title;
+        note.text = e.text;
+        note.titleEn = e.titleEn;
+        note.textEn = e.textEn;
         note.paper = paper.transform;
         AddFrontReach(p, c);
     }
@@ -2397,6 +2400,7 @@ public static class LevelBuilder
 
     internal static string SetupPostProcessing(GameObject camGo)
     {
+        urp = GraphicsSettings.currentRenderPipeline != null; // menu budowane osobno nie przechodzi przez Build()
         if (!urp) return "Post-processing: pominięty (projekt bez URP).";
         var volT = FindType("UnityEngine.Rendering.Volume");
         var profT = FindType("UnityEngine.Rendering.VolumeProfile");
@@ -3490,7 +3494,7 @@ public static class LevelBuilder
         surf.gameObject.AddComponent<BlackoutImmune>();
         story.surface = surf.gameObject;
 
-        // ---------- INTRO: opuszczony magazyn "Kogucika" ----------
+        // ---------- INTRO: opuszczony magazyn Freddy Fazbear's Pizza ----------
         var intro = new GameObject("Magazyn – intro").transform;
         intro.SetParent(surf);
         story.introSet = intro.gameObject;
@@ -4518,79 +4522,4 @@ public static class LevelBuilder
         kitchenProps = null; // odśwież listy (nowe materiały)
     }
 
-    // =====================================================================
-    //  NOTATKI (fabuła)
-    // =====================================================================
-
-    const string StartNote =
-        "Dzień 34.\n\nJeśli ktoś to czyta – NIE BIEGAJ. To coś słyszy kroki.\n" +
-        "Kucanie (Ctrl) jest ciche. Latarka (F) pomaga, ale widać cię z daleka – i nie świeć NA NIEGO.\n\n" +
-        "Szafki ratują życie (E). Jeśli zacznie węszyć przy twojej – wstrzymaj oddech (Spacja).\n" +
-        "Ale jeśli zobaczy, jak do niej wchodzisz...\n\n" +
-        "Pod sufitem biegną grube rury. Ono w nich chodzi – słychać stukanie, a rury drżą.\n" +
-        "Twoja kamera wciąż działa. Ma noktowizję (PPM, potem F). Ono jej nie widzi.\n\n" +
-        "Zostawiłem wykrywacz ruchu niedaleko stąd. Radiostacja w biurze kierownika jeszcze działa.\n" +
-        "Tu nie ma zasięgu. Tylko ona może nas stąd wyciągnąć.\n\n- K.";
-
-    const string StartNoteEn =
-        "Day 34.\n\nIf anyone reads this – DON'T RUN. That thing hears footsteps.\n" +
-        "Crouching (Ctrl) is quiet. The flashlight (F) helps, but it can see you from far away – and don't shine it AT IT.\n\n" +
-        "Lockers save lives (E). If it starts sniffing at yours – hold your breath (Space).\n" +
-        "But if it sees you getting in...\n\n" +
-        "Thick pipes run under the ceiling. It moves inside them – you can hear knocking, and the pipes shake.\n" +
-        "Your camera still works. It has night vision (RMB, then F). It can't see the camera's light.\n\n" +
-        "I left a motion tracker not far from here. The radio in the manager's office still works.\n" +
-        "There's no signal down here. Only the radio can get us out.\n\n- K.";
-
-    const string KitchenNoteEn =
-        "SHIFT SCHEDULE\n\nMonday: Kate, Tom, Employee\nMonday: Kate, Tom, Employee\n" +
-        "Monday: Kate, Employee\nMonday: Employee\nMonday: Employee\n\n" +
-        "(written in pen)\nWho is Employee? Nobody hired him.\n" +
-        "The fryer is too big. Yesterday it was normal. The extinguisher hangs by the grill.";
-
-    const string FreezerNoteEn =
-        "To all shifts:\n\nSomething walks in the pipes under the ceiling. First you hear knocking,\n" +
-        "the pipes shake, dust falls from the joints. When the dust falls – DON'T MOVE.\n\n" +
-        "Sometimes it waits above a hatch. You can hear a quiet purring, and the pipe drips.\n" +
-        "DON'T WALK UNDERNEATH.\n\n" +
-        "The extinguisher scares it off. I saw it flee into a pipe.\n" +
-        "But it comes back. It always comes back to where it last heard people.\n\n– shift manager";
-
-    const string DiningNoteEn =
-        "CUSTOMER SURVEY\n\nHow would you rate your visit?   1/5\n\n" +
-        "Comments: I can't find the exit. The chairs are too big. The tables hang from the ceiling.\n" +
-        "Someone in our cap has been standing behind the counter for a week and doesn't move.\n" +
-        "When I turn around – he's standing closer.";
-
-    const string OfficeNoteEn =
-        "TRANSCRIPT – 108.7 MHz (fragment)\n\n\"...if anyone can hear this, this is the Agency.\n" +
-        "This zone is OUT OF RANGE of our networks. The only channel is the radio in the manager's office.\n" +
-        "Required: antenna, transmitter tube, power supply.\n" +
-        "Send the signal and we will come. Don't trust anything that wears a uniform...\"\n\n[static]";
-
-    const string KitchenNote =
-        "GRAFIK ZMIAN\n\nPoniedziałek: Kasia, Tomek, Pracownik\nPoniedziałek: Kasia, Tomek, Pracownik\n" +
-        "Poniedziałek: Kasia, Pracownik\nPoniedziałek: Pracownik\nPoniedziałek: Pracownik\n\n" +
-        "(dopisane długopisem)\nKto to jest Pracownik? Nikt go nie zatrudniał.\n" +
-        "Frytownica jest za duża. Wczoraj była normalna. Gaśnica wisi przy grillu.";
-
-    const string FreezerNote =
-        "Do wszystkich zmian:\n\nCoś chodzi w rurach pod sufitem. Najpierw słychać stukanie,\n" +
-        "rury drżą, z połączeń sypie się kurz. Kiedy kurz leci – NIE RUSZAJ SIĘ.\n\n" +
-        "Czasem czeka nad włazem. Słychać wtedy ciche mruczenie i z rury kapie.\n" +
-        "NIE PRZECHODŹ POD SPODEM.\n\n" +
-        "Gaśnica je odstrasza. Widziałem, jak uciekło do rury.\n" +
-        "Ale wraca. Zawsze wraca tam, gdzie ostatnio słyszało ludzi.\n\n– kierownik zmiany";
-
-    const string DiningNote =
-        "ANKIETA KLIENTA\n\nJak oceniasz swoją wizytę?   1/5\n\n" +
-        "Uwagi: Nie mogę znaleźć wyjścia. Krzesła są za duże. Stoły wiszą pod sufitem.\n" +
-        "Ktoś w naszej czapce stoi za ladą od tygodnia i się nie rusza.\n" +
-        "Kiedy się odwracam – stoi bliżej.";
-
-    const string OfficeNote =
-        "TRANSKRYPCJA – 108.7 MHz (fragment)\n\n\"...jeśli ktoś to słyszy, tu Agencja.\n" +
-        "Ta strefa jest POZA ZASIĘGIEM naszych sieci. Jedyny kanał to radiostacja w biurze kierownika.\n" +
-        "Potrzebne: antena, lampa nadawcza, zasilacz.\n" +
-        "Nadaj sygnał, a przyjdziemy. Nie ufaj niczemu, co nosi uniform...\"\n\n[szum]";
 }

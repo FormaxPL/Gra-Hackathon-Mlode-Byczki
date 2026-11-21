@@ -33,7 +33,7 @@ Nie wymaga żadnych dodatkowych pakietów ani assetów. Wszystko jest z prostych
 ## Co nowego w v5
 
 **Fabuła od początku do końca:**
-1. **Intro:** znajomi (Kuba i Ola) nagrywają film w opuszczonym magazynie „Kogucika”. Podłoga się zapada, bohater (Marek) spada, a potem budzi się na podłodze labiryntu i wstaje. Intro można pominąć Spacją.
+1. **Intro:** znajomi (Kuba i Ola) nagrywają film w opuszczonym magazynie Freddy Fazbear's Pizza. Podłoga się zapada, bohater (Marek) spada, a potem budzi się na podłodze labiryntu i wstaje. Intro można pominąć Spacją.
 2. **Awaria prądu** po zebraniu 2. części radiostacji (około 75 s ciemności).
 3. **Radiostacja → Agencja ECHO** (Służba Odzyskiwania Zaginionych Poza Zasięgiem). Agencja odcina zasilanie, żeby odblokować **bramę serwisową** na wschodniej ścianie mapy. Do bramy trzeba się przekraść w całkowitej ciemności. Brama ma pomarańczowy kogut i sygnał dźwiękowy.
 4. **Tunel za bramą:** po kilku metrach zapalają się czerwone światła, wyje syrena i potwór rusza w **pościg do samego końca**. W pościgu kondycja się nie kończy, a gaśnica tylko na chwilę go zatrzymuje.

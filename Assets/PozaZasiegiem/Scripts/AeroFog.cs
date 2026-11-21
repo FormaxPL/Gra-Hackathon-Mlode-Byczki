@@ -99,12 +99,28 @@ public class AeroFog : MonoBehaviour
         if (cam == null) cam = Camera.main;
         if (cam == null) return;
         int idx = EffectiveOn(on, Suppressed) && Available ? FindRendererIndex() : -1;
-        foreach (var c in cam.GetComponents<Component>())
+        var t = CameraDataType();
+        if (t == null) return;
+        var c = cam.GetComponent(t);
+        if (c == null)
         {
-            if (c == null || c.GetType().Name != "UniversalAdditionalCameraData") continue;
-            var m = c.GetType().GetMethod("SetRenderer", BindingFlags.Public | BindingFlags.Instance);
-            if (m != null) { try { m.Invoke(c, new object[] { idx }); } catch { } }
+            if (idx < 0) return; // nic do przełączenia
+            c = cam.gameObject.AddComponent(t); // kamera bez danych URP (np. menu) – bez tego mgła się nie włączy
         }
+        var m = t.GetMethod("SetRenderer", BindingFlags.Public | BindingFlags.Instance);
+        if (m != null) { try { m.Invoke(c, new object[] { idx }); } catch { } }
+    }
+
+    static System.Type cameraDataType;
+    static System.Type CameraDataType()
+    {
+        if (cameraDataType != null) return cameraDataType;
+        foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            cameraDataType = a.GetType("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData", false);
+            if (cameraDataType != null) break;
+        }
+        return cameraDataType;
     }
 
     public void SetDensity(float multiplier)

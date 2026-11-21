@@ -376,7 +376,7 @@ public class StoryDirector : MonoBehaviour
             Vector3 target = Vector3.Lerp(look, hole, lookDown);
             Vector3 hh = Handheld(t, 2.2f);
             cam.SetPositionAndRotation(pos, Quaternion.LookRotation(target - pos) * Quaternion.Euler(hh.x, hh.y, hh.x * 0.6f));
-            if (!said1 && t > 0.8f) { said1 = true; Say("JACK", kuba, "Nagrywasz? Dobra... to tutaj. Stary magazyn „Kogucika”. Podobno cała nocna zmiana zniknęła tu bez śladu.", "Recording? Okay... this is it. The old \"Kogucik\" warehouse. They say the whole night shift vanished here without a trace.", 4.6f); }
+            if (!said1 && t > 0.8f) { said1 = true; Say("JACK", kuba, "Nagrywasz? Dobra... to tutaj. Stary magazyn Freddy Fazbear's Pizza. Podobno cała nocna zmiana zniknęła tu bez śladu.", "Recording? Okay... this is it. The old Freddy Fazbear's Pizza warehouse. They say the whole night shift vanished here without a trace.", 4.6f); }
             if (!said2 && t > 5.6f) { said2 = true; Say("MARY", ola, "Ciii... słyszysz? Coś stuka. Pod podłogą...", "Shh... hear that? Something's knocking. Under the floor...", 3.6f); }
             if (!creak && t > 6.8f) { creak = true; sfx.PlayOneShot(ProceduralAudio.Creak(31), 1f); }
             yield return null;

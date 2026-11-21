@@ -1349,7 +1349,7 @@ MonoBehaviour:
   densityProperties:
   - _Density
   densityBase:
-  - 0.06
+  - 0.25
 --- !u!4 &236537822
 Transform:
   m_ObjectHideFlags: 0

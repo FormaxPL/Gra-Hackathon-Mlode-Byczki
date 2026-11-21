@@ -13,7 +13,7 @@ public class MenuSystem : MonoBehaviour
 
     public bool showMainMenuOnStart = true;
 
-    enum Page { None, Main, Pause, Settings }
+    enum Page { None, Main, Pause, Settings, Controls }
     Page page, back;
     bool gameStarted;
     Vector2 scroll;
@@ -102,7 +102,7 @@ public class MenuSystem : MonoBehaviour
     {
         var gm = GameManager.Instance;
         if (!GameInput.EscapeDown) return;
-        if (page == Page.Settings) { page = back; return; }
+        if (page == Page.Settings || page == Page.Controls) { page = back; return; }
         if (page == Page.Pause) { Close(); return; }
         if (page != Page.None) return;
         if (gm != null && (gm.IsOver || gm.IsDying || gm.IsReading)) return;
@@ -185,19 +185,24 @@ public class MenuSystem : MonoBehaviour
             case Page.Main:
                 if (Button(new Rect(x, y, bw, bh), Loc.T("Rozpocznij grę", "Start game"))) StartGame();
                 if (Button(new Rect(x, y + gap, bw, bh), Loc.T("Ustawienia", "Settings"))) { back = Page.Main; page = Page.Settings; }
-                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
+                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Sterowanie", "Controls"))) { back = Page.Main; page = Page.Controls; }
+                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
                 GUI.Label(new Rect(0, sh - 60 * k, sw, 40 * k),
                     Loc.T("Słuchawki zalecane.  Esc – pauza", "Headphones recommended.  Esc – pause"), small);
                 break;
             case Page.Pause:
                 if (Button(new Rect(x, y, bw, bh), Loc.T("Wróć do gry", "Resume"))) Close();
                 if (Button(new Rect(x, y + gap, bw, bh), Loc.T("Ustawienia", "Settings"))) { back = Page.Pause; page = Page.Settings; }
-                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Zacznij od nowa", "Restart"))) Restart(true);
-                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Menu główne", "Main menu"))) Restart(false);
-                if (Button(new Rect(x, y + gap * 4, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
+                if (Button(new Rect(x, y + gap * 2, bw, bh), Loc.T("Sterowanie", "Controls"))) { back = Page.Pause; page = Page.Controls; }
+                if (Button(new Rect(x, y + gap * 3, bw, bh), Loc.T("Zacznij od nowa", "Restart"))) Restart(true);
+                if (Button(new Rect(x, y + gap * 4, bw, bh), Loc.T("Menu główne", "Main menu"))) Restart(false);
+                if (Button(new Rect(x, y + gap * 5, bw, bh), Loc.T("Wyjdź z gry", "Quit game"))) Quit();
                 break;
             case Page.Settings:
                 DrawSettings(sw, sh, k);
+                break;
+            case Page.Controls:
+                DrawControls(sw, sh, k);
                 break;
         }
     }
@@ -220,6 +225,46 @@ public class MenuSystem : MonoBehaviour
 #else
         Application.Quit();
 #endif
+    }
+
+    // ===================== STEROWANIE =====================
+
+    static readonly string[,] ControlRows =
+    {
+        { "W A S D", "Ruch", "Move" },
+        { "Mysz", "Rozglądanie się", "Look around" },
+        { "Shift", "Bieg – głośny, potwór go słyszy", "Run – loud, the creature hears it" },
+        { "Ctrl / C", "Kucanie – ciche skradanie", "Crouch – quiet sneaking" },
+        { "E", "Podnieś / użyj / czytaj / schowaj się w szafce", "Pick up / use / read / hide in a locker" },
+        { "Spacja (trzymaj)", "Wstrzymaj oddech w kryjówce", "Hold your breath while hiding" },
+        { "F", "Latarka", "Flashlight" },
+        { "PPM", "Kamera (podnieś / opuść)", "Camera (raise / lower)" },
+        { "F / N (z kamerą)", "Noktowizja", "Night vision" },
+        { "Kółko myszy", "Zoom kamery", "Camera zoom" },
+        { "Tab / Q (trzymaj)", "Wykrywacz ruchu", "Motion tracker" },
+        { "LPM", "Gaśnica – odstrasza potwora", "Extinguisher – scares the creature off" },
+        { "Esc", "Pauza", "Pause" },
+    };
+
+    void DrawControls(float sw, float sh, float k)
+    {
+        GUI.Label(new Rect(0, 30 * k, sw, 80 * k), Loc.T("STEROWANIE", "CONTROLS"), new GUIStyle(title) { fontSize = Mathf.RoundToInt(56 * k) });
+        rowW = Mathf.Min(1100 * k, sw * 0.9f);
+        rowX = (sw - rowW) / 2f;
+        rowH = 46 * k;
+        rowY = 130 * k;
+        row = 0;
+        var keyStyle = new GUIStyle(value) { fontStyle = FontStyle.Bold };
+        for (int i = 0; i < ControlRows.GetLength(0); i++)
+        {
+            var r = NextRow();
+            Fill(r, new Color(1f, 1f, 1f, 0.04f));
+            GUI.Label(new Rect(r.x + 16, r.y, r.width * 0.32f, r.height), ControlRows[i, 0], keyStyle);
+            GUI.Label(new Rect(r.x + r.width * 0.36f, r.y, r.width * 0.62f, r.height), Loc.T(ControlRows[i, 1], ControlRows[i, 2]), label);
+        }
+        float bw = 300 * k, bh = 58 * k;
+        if (Button(new Rect((sw - bw) / 2f, Mathf.Min(sh - bh - 20 * k, rowY + row * (rowH + 6 * k) + 16 * k), bw, bh), Loc.T("Wróć", "Back")))
+            page = back;
     }
 
     // ===================== USTAWIENIA =====================
